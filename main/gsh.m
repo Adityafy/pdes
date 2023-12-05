@@ -1,86 +1,155 @@
-% 2D Swift Hohenberg
-clear all;
-close all;
+% GSH
 
+close all;
 clear all;
+
 addpath('../src/');
 mfa = '/media'; % media folder address
 dfa = '/data'; % saved data folder address
 
-% control parameter
+
+%% control parameters
 eps = 0.7;
+
+% ----mean flow----
 sig = 2;
 c = sqrt(0.1);
 gm = 50;
+
+% ----no mean flow----
+% sig = 0;
+% c = 0;
+% gm = 0;
+
+% ----discretization----
 lam_0 = 2*pi; % critical wavelength
+dx = lam_0/8; % node spacing
+dy = dx;
+delta = dx;
 
 dt = 0.2; % time step size
-dx = lam_0/8; % node spacing
-dy = lam_0/8;
+h = dt;
 
-tmax = 1000/dt; % total time steps
+time_units = 50;
+tmax = time_units/dt; % total time steps
 
-rolls = 10;
+% ----domain size----
+rolls = 5;
 Nx = round(rolls*lam_0/dx); % spatial nodes in x
 Ny = round(rolls*lam_0/dy); % spatial nodes in y
+% Nx = 5;
+% Ny = 5;
 N = Nx*Ny;
-% N = 30;
 
+gmPos = 2; % position of gm; 1 for eqn 1, 2 for eqn 2 (Karimi)
+gsiters = 5; % number of iterations for gauss seidel
+
+% ----random seed----
 seed = 2;
 rng(seed,"twister");
 
-para = [eps sig c gm dt dx dy tmax Nx Ny];
+% ----parameter vector----
+para = [eps % 1
+    sig     % 2
+    c       % 3
+    gm      % 4
+    dt      % 5
+    dx      % 6
+    dy      % 7
+    tmax    % 8
+    Nx      % 9
+    Ny      % 10
+    gmPos]; % 11
 
-psilat = zeros(Nx,Ny,1); % scalar field
+% ----video----
+altframes = 1;
+
+%% Initial conditions and preallocation
+
+psimat = zeros(Nx,Ny,1); % scalar field
 psivec = zeros(N,1);
-psilat(:,:,1) = rand(Nx,Ny);
-psivec(:,1) = latToVec(psilat(:,:,1));
+% psilat(:,:,1) = -1+(1+1)*rand(Nx,Ny);
+psimat(:,:,1) = -0.1 + (0.1+0.1)*rand(Nx,Ny);
+psivec(:,1) = latToVec(psimat(:,:,1));
 
-zetalat = zeros(Nx,Ny,tmax); % scalar field
+
+% -------- periodic boundary IC for zeta and omega ---------
+% zetamat = zeros(Nx,Ny,tmax); % scalar field
+% zetavec = zeros(N,tmax);
+% 
+% avec = 1:N;
+% amat = vecToLat(avec, Nx, Ny);
+% zetamat(:,:,1) = sin(amat).*cos(amat);
+% zetavec(:,1) = latToVec(zetamat(:,:,1));
+% 
+% ulat = zeros(Nx,Ny,tmax);
+% vlat = zeros(Nx,Ny,tmax);
+% 
+% omzmat = zeros(Nx,Ny,1); % scalar field
+% omzvec = zeros(N,1);
+% omzmat(:,:,1) = - laplacian(zetamat(:,:,1),para) + 0.1*rand(Nx,Ny);
+% omzvec(:,1) = latToVec(omzmat(:,:,1));
+
+
+%-------------- random IC for zeta and omega -----------------
+zetamat = zeros(Nx,Ny,tmax); % scalar field
 zetavec = zeros(N,tmax);
-zetalat(:,:,1) = rand(Nx,Ny);
-% zetalat(:,:,1) = zeros(Nx,Ny);
-zetavec(:,1) = latToVec(zetalat(:,:,1));
-
-omzlat = zeros(Nx,Ny,1); % scalar field
+% omzmat = -0.01 + (0.01+0.01)*rand(Nx,Ny); % scalar field
+seed = 4;
+rng(seed,"twister");
+omzmat = -0.01 + (0.01+0.01) * rand(Nx,Ny);
 omzvec = zeros(N,1);
-omzlat(:,:,1) = rand(Nx,Ny);
-omzvec(:,1) = latToVec(zetalat(:,:,1));
 
 tic
+fprintf('Constructing coefficient matrices...\n');
 
 %% coefficients
+
+% zeta
 z1 = 1/dx^2;
-z2 = -2 * (1/dx^2 + 1/dy^2);
+z2 = -2 * ((1/dx^2) + (1/dy^2));
 z3 = 1/dy^2;
 
-a1 = dt*(eps-1)/2;
-a2 = dt/(dx^4);
-a3 = dt/(dx^2);
-a4 = dt/(dx^2*dy^2);
-a5 = dt/(dy^4);
-a6 = dt/(dy^2);
+% psi
+% a1 = dt*(eps-1)/2;
+% a2 = dt/(dx^4);
+% a3 = dt/(dx^2);
+% a4 = dt/(dx^2*dy^2);
+% a5 = dt/(dy^4);
+% a6 = dt/(dy^2);
 
-a7 = a1 - 3*a2 - 4*a4 - 3*a5 + 2*a3 + 2*a6;
 
-b1 = 1 - a7;
-b2 = -2*a2 + a3 - 2*a4;
-b3 = -2*a5 + a6 - 2*a4;
-b4 = a4;
-b5 = a2/2;
-b6 = a5/2;
+a0 = - (eps-1)*h/2 + 10*h/delta^4 - 4*h/delta^2;
 
-c1 = 1 + a7;
-c2 = -b2;
-c3 = -b3;
-c4 = -b4;
-c5 = -b5;
-c6 = -b6;
+a1 = 1 + a0;
+a2 = -4*h/delta^4 + h/delta^2;
+a3 = h/delta^4;
+a4 = h/(2*delta^4);
 
-m0 = sig*dt/(2*dx^2) + sig*dt/(2*dy^2) + c^2;
+b1 = 1 - a0;
+b2 = -a2;
+b3 = -a3;
+b4 = -a4;
+
+% b1 = 1 - a7;
+% b2 = -2*a2 + a3 - 2*a4;
+% b3 = -2*a5 + a6 - 2*a4;
+% b4 = a4;
+% b5 = a2/2;
+% b6 = a5/2;
+% 
+% c1 = 1 + a7;
+% c2 = -b2;
+% c3 = -b3;
+% c4 = -b4;
+% c5 = -b5;
+% c6 = -b6;
+
+% omz
+m0 = sig*h/(dx^2) + sig*h/(dy^2) + h*sig*(c^2)/2;
 m1 = 1 + m0;
-m2 = - sig*dt/(2*dx^2);
-m3 = - sig*dt/(2*dy^2);
+m2 = - sig*h/(2*dx^2);
+m3 = - sig*h/(2*dy^2);
 m4 = 1 - m0;
 m5 = - m2;
 m6 = - m3;
@@ -100,10 +169,10 @@ Jm2 = circshift(J,2);
 z = zeros(Nx,Ny);
 Z = zeros(N,N);
 
+a = zeros(Nx,Ny);
 b = zeros(Nx,Ny);
-d = zeros(Nx,Ny);
+A = zeros(N,N);
 B = zeros(N,N);
-D = zeros(N,N);
 
 ml = zeros(Nx,Ny);
 mr = zeros(Nx,Ny);
@@ -120,64 +189,97 @@ for i = 1:length(I)
         z(Im1(i),J(j)) = z1;
         Z(n,:) = latToVec(z)';
 
+        a(I(i),J(j)) = a1;
+
+        a(I(i),Jp1(j)) = a2;
+        a(I(i),Jm1(j)) = a2;
+        a(Ip1(i),J(j)) = a2;
+        a(Im1(i),J(j)) = a2;
+
+        a(Ip1(i),Jp1(j)) = a3;
+        a(Ip1(i),Jm1(j)) = a3;
+        a(Im1(i),Jp1(j)) = a3;
+        a(Im1(i),Jm1(j)) = a3;
+
+        a(Im2(i),J(j)) = a4;
+        a(I(i),Jp2(j)) = a4;
+        a(I(i),Jm2(j)) = a4;
+        a(Ip2(i),J(j)) = a4;
+
+        A(n,:) = latToVec(a)';
+
+        b = -1*a;
+
         b(I(i),J(j)) = b1;
-        b(I(i),Jp1(j)) = b3;
-        b(I(i),Jp2(j)) = b6;
-        b(I(i),Jm1(j)) = b3;
-        b(I(i),Jm2(j)) = b6;
-        b(Ip1(i),J(j)) = b2;
-        b(Ip1(i),Jp1(j)) = b4;
-        b(Ip1(i),Jm1(j)) = b4;
-        b(Ip2(i),J(j)) = b5;
-        b(Im2(i),J(j)) = b5;
-        b(Im1(i),J(j)) = b2;
-        b(Im1(i),Jp1(j)) = b4;
-        b(Im1(i),Jm1(j)) = b4;
+
         B(n,:) = latToVec(b)';
-        d = -1*b;
-        d(I(i),J(j)) = 1+a7;
-        D(n,:) = latToVec(d)';
         
         ml(I(i),J(j)) = m1;
         ml(Im1(i),J(j)) = m2;
         ml(Ip1(i),J(j)) = m2;
         ml(I(i),Jm1(j)) = m3;
         ml(I(i),Jp1(j)) = m3;
+
         Ml(n,:) = latToVec(ml)';
-        mr(I(i),J(j)) = 1 - m0;
+
         mr = - ml;
+
+        mr(I(i),J(j)) = 1 - m0;
+
         Mr(n,:) = latToVec(mr)';
 
         n = n+1;
         z = zeros(Nx,Ny);
+        a = zeros(Nx,Ny);
         b = zeros(Nx,Ny);
-        d = zeros(Nx,Ny);
         ml = zeros(Nx,Ny);
         mr = zeros(Nx,Ny);
     end
 end
 
-Z = sparse(Z);
+% Z = sparse(Z);
 
 Lz = tril(Z);
 Uz = triu(Z,1);
 Lzinv = inv(Lz);
 
-matdivpsi = B\D;
+matdivpsi = A\B;
 matdivomz = Ml\Mr;
+zetavect = rand(N,1);
+Zzeta = zeros(N,1);
+
+ toc
 
 %% Time integration
+fprintf('Running time integration...\n');
 for t = 1:tmax
-    zetavec(:,t) = Lzinv * (omzvec(:,t) - Uz * zetavec(:,t));
-    zetalat(:,:,t) = vecToLat(zetavec(:,t),Nx,Ny);
-    psitilde = rk2eq1(psilat(:,:,t),zetalat(:,:,t),para,@nlpgsh1); % explicit nonlinear
+    % zetavec(:,t) = Lzinv * (-omzvec(:,t) - Uz * zetavec(:,t));
+    % zeta = gauss_seidel(Z,-omzvec(:,t),zetavec(:,t),gsiters);
+    % zeta = gauss_seidel(Z,-omzvec(:,t),zetavec(:,t));
+    % zetavec(:,t) = gaussseidel(Z,zetavect,omzvec);
+    % zeta = gslu(Z,-omzvec(:,t),zetavec(:,t));
+    % zeta = Z\(-omzvec(:,t));'
+    
+    %------------------ zeta, iterative ------------------------
+    zetamat(:,:,t) = zetafunc(omzmat(:,:,t),zetamat(:,:,t),para);
+    [ulat(:,:,t),vlat(:,:,t)] = uvzeta(zetamat(:,:,t),para);
+    
+    %------------------ explicit nonlinear --------------------
+    psitilde = rk2eq1(psimat(:,:,t),zetamat(:,:,t),para,@nlpgsh1); 
     psitilde = latToVec(psitilde);
-    omztilde = rk2eq2(psilat(:,:,t),para,@nlpgsh2);
+
+    omztilde = rk2eq2(omzmat(:,:,t),psimat(:,:,t),para,@nlpgsh2);
     omztilde = latToVec(omztilde);
-    psivec(:,t+1) = matdivpsi*psitilde; % implicit CN linear
-    omzvec(:,t+1) = matdivomz*omztilde;
-    psilat(:,:,t+1) = vecToLat(psivec(:,t+1),Nx,Ny);
-    omzlat(:,:,t+1) = vecToLat(omzvec(:,t+1),Nx,Ny);
+    
+    %------------------ implicit CN linear ----------------------
+    psivec(:,t+1) = matdivpsi * psitilde;
+    omzvec(:,t+1) = matdivomz * omztilde;
+
+    %--------- converting from vector to matrix ----------
+    psimat(:,:,t+1) = vecToLat(psivec(:,t+1),Nx,Ny);
+    omzmat(:,:,t+1) = vecToLat(omzvec(:,t+1),Nx,Ny);
+    
+    zetamat(:,:,t+1) = zetamat(:,:,t);
     if rem(t,tmax/10) == 0
         fprintf('This is time step %i, ',t);
         toc
@@ -185,43 +287,77 @@ for t = 1:tmax
 end
 toc
 
-%% Figures and videos
+%% dynamics video
 
-dynVideoFilename = 'gshDynVideo2';
+dynVideoFilename = 'gshDynVideo20';
 lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
 %lat_dyn_video.FrameRate = 30;
 open(lat_dyn_video);
+[X,Y] = meshgrid(1:Nx,1:Ny);
 figure();
-for t = 1:50:tmax
+% hold on;
+for t = 1:altframes:tmax
     % imagesc(psilat(:,:,t));
-    contourf(psilat(:,:,t), 'Linecolor', 'none');
+    plot1 = contourf(psimat(:,:,t), 'Linecolor', 'none');
+    set(gca,'YDir','normal');
+    hold on;
+    % imagesc(zetalat(:,:,t));
     colorbar;
     colormap jet
-    clim([-0.8 0.8]);
-    %set(gca,'YDir','normal');
+    clim([-0.9 0.8]);
+    plot2 = quiver(X,Y,4*vlat(:,:,t),4*ulat(:,:,t));
+    
     frame = getframe(gcf);
     writeVideo(lat_dyn_video,frame);
+    % clear plot1 plot2;
+    hold off;
 end
+hold off;
 close(lat_dyn_video);
 
+%% zeta video
+
+zetaVideoFilename = 'gshZetaVideo20';
+zeta_dyn_video = VideoWriter(zetaVideoFilename, 'MPEG-4');
+%lat_dyn_video.FrameRate = 30;
+open(zeta_dyn_video);
+[X,Y] = meshgrid(1:Nx,1:Ny);
+figure();
+% hold on;
+for t = 1:altframes:tmax
+    plot2 = quiver(X,Y,vlat(:,:,t),ulat(:,:,t));
+    xlim([0 Nx]);
+    ylim([0 Ny]);
+    % set(gca,'YDir','normal');
+    frame = getframe(gcf);
+    writeVideo(zeta_dyn_video,frame);
+    % clear plot1 plot2;
+    hold off;
+end
+hold off;
+close(zeta_dyn_video);
+
+%% psi figure
 
 figure;
-imagesc(psilat(:,:,tmax)');
+imagesc(psimat(:,:,tmax)');
 set(gca,'YDir','normal');
 colorbar;
 colormap jet;
+title('\psi');
 
 % figure;
 % imagesc(ulat(:,:,6)');
 % set(gca,'YDir','normal');
 % colorbar;
-% colormap jet;           
+% colormap jet;
 
 figure;
-contourf(psilat(:,:,tmax)', 'Linecolor', 'none');
+contourf(psimat(:,:,tmax)', 'Linecolor', 'none');
 set(gca,'YDir','normal');
 colorbar;
 colormap jet;
+title('\psi');
 
 figure;
 imagesc(psivec');
@@ -229,13 +365,112 @@ set(gca,'YDir','normal');
 colorbar; 
 colormap jet;
 
+figure; imagesc(ulat(:,:,end)); colorbar; title('u');
+figure; imagesc(vlat(:,:,end)); colorbar; title('v');
+
+figure;
+contourf(zetamat(:,:,end),'Linecolor','none');
+colorbar;
+title('\zeta');
 
 %% Functions
-function np1 = nlpgsh1(psi,zeta,para)
-    dx = para(3);
-    dy = para(4);
+
+function zeta = zetafunc(omzmat, zetamat, para)
+    delta = para(6);
     Nx = para(9);
     Ny = para(10);
+
+    I = 1:Nx;
+    J = 1:Ny;
+    Ip1 = circshift(I,-1);
+    Im1 = circshift(I,1);
+    Jp1 = circshift(J,-1);
+    Jm1 = circshift(J,1);
+
+    zeta = zetamat;
+    iterations = 800;
+    difference = zeros(1,iterations);
+
+    for k = 1:iterations
+        for i = 1:length(I)
+            for j = 1:length(J)
+                zeta(i,j) = ((delta^2)/4) * omzmat(I(i),J(j)) ...
+                    + (1/4) * ( zetamat(Im1(i),J(j)) + zetamat(Ip1(i),J(j)) ...
+                    + zetamat(I(i),Jm1(j)) + zetamat(I(i),Jp1(j)) );
+            end
+        end
+
+        lapl = zeros(size(zeta));
+        for i = 1:length(I)
+            for j = 1:length(J)
+                lapl(i,j) = (1/(delta^2)) * ...
+                    ( zeta(Im1(i),J(j)) + zeta(Ip1(i),J(j)) ...
+                    - 4 * zeta(I(i),J(j)) + ...
+                    + zeta(I(i),Jm1(j)) + zeta(I(i),Jp1(j)) );
+            end
+        end
+        b = lapl - (-omzmat);
+        difference(k) = max(max(abs(b)));
+        zetamat = zeta;
+    end
+end
+
+
+function lapl = laplacian(var, para)
+    delta = para(6);
+    Nx = para(9);
+    Ny = para(10);
+
+    I = 1:Nx;
+    J = 1:Ny;
+    Ip1 = circshift(I,-1);
+    Im1 = circshift(I,1);
+    Jp1 = circshift(J,-1);
+    Jm1 = circshift(J,1);
+    
+    lapl = zeros(size(var));
+
+    for i = 1:length(I)
+        for j = 1:length(J)
+            lapl(i,j) = (1/(delta^2)) * ...
+                        ( var(Im1(i),J(j)) + var(Ip1(i),J(j)) ...
+                            - 4 * var(I(i),J(j)) + ...
+                        + var(I(i),Jm1(j)) + var(I(i),Jp1(j)) );
+        end
+    end
+end
+
+function [u,v] = uvzeta(zeta,para)
+    dx = para(6);
+    dy = para(7);
+    Nx = para(9);
+    Ny = para(10);
+    I = 1:Nx;
+    J = 1:Ny;
+    Ip1 = circshift(I,-1);
+    Im1 = circshift(I,1);
+    Jp1 = circshift(J,-1);
+    Jm1 = circshift(J,1);
+
+    u = zeros(Nx,Ny);
+    v = zeros(Nx,Ny);
+    for i = 1:length(I)
+        for j = 1:length(J)
+            dzetadx = (zeta(Ip1(i),J(j)) - zeta(Im1(i),J(j)))/(2*dx);
+            dzetady = (zeta(I(i),Jp1(j)) - zeta(I(i),Jm1(j)))/(2*dy);
+            u(i,j) = dzetady;
+            v(i,j) = -dzetadx;
+        end
+    end
+end
+
+function np1 = nlpgsh1(psit,zetat,para)
+    gm = para(4);
+    dx = para(6);
+    dy = para(7);
+    Nx = para(9);
+    Ny = para(10);
+    gmPos = para(11);
     %psi = vecToLat(psivec);
     %zeta = vecToLat(zetavec);
     I = 1:Nx;
@@ -244,25 +479,35 @@ function np1 = nlpgsh1(psi,zeta,para)
     Im1 = circshift(I,1);
     Jp1 = circshift(J,-1);
     Jm1 = circshift(J,1);
-    c = 1/(4*dx*dy);
+
+    % c = 1/(4*dx*dy);
     np1 = zeros(Nx,Ny);
     for i = 1:length(I)
         for j = 1:length(J)
-            np1(i,j) = - 3*psi(I(i),J(j))^3 ...
-                - c * (zeta(I(i),Jp1(j)) - zeta(I(i),Jm1(j))) ...
-                    * (psi(Ip1(i),J(j)) - psi(Im1(i),J(j))) ...
-                + c * (zeta(Ip1(i),J(j)) - zeta(Im1(i),J(j))) ...
-                    * (psi(I(i),Jp1(j)) - psi(I(i),Jm1(j)));
+            dzetadx = (zetat(Ip1(i),J(j)) - zetat(Im1(i),J(j)))/(2*dx);
+            dzetady = (zetat(I(i),Jp1(j)) - zetat(I(i),Jm1(j)))/(2*dy);
+            dpsidx = (psit(Ip1(i),J(j)) - psit(Im1(i),J(j)))/(2*dx);
+            dpsidy = (psit(I(i),Jp1(j)) - psit(I(i),Jm1(j)))/(2*dy);
+            psi = psit(I(i),J(j));
+            % if gmPos == 1
+            %     np1(i,j) = - 3*psi^3 - gm* ( dzetady * dpsidx - dzetadx * dpsidy );
+            % elseif gmPos == 2
+                np1(i,j) = - psi^3 - dzetady * dpsidx + dzetadx * dpsidy ;
+            % else
+            %     error('gmPos must be either 1 or 2');
+            % end
         end
     end
 end
 
-function np2 = nlpgsh2(psi,para)
+
+function np2 = nlpgsh2(omz,psi,para)
     gm = para(4);
     dx = para(6);
     dy = para(7);
     Nx = para(9);
     Ny = para(10);
+    %gmPos = para(11);
     %psi = vecToLat(psivec);
     % zeta = vecToLat(zetanvec);
     I = 1:Nx;
@@ -276,44 +521,48 @@ function np2 = nlpgsh2(psi,para)
     Jp2 = circshift(J,-2);
     Jm2 = circshift(J,2);
     
-    dpsidx = @(i,j) (psi(Ip1(i),J(j)) - psi(Im1(i),J(j)))/(2*dx);
-    %dzetadx = @(i,j) (zeta(Ip1(i),J(j)) - zeta(Im1(i),J(j)))/(2*dx);
-    dpsidy = @(i,j) (psi(Ip1(i),J(j)) - psi(Im1(i),J(j)))/(2*dy);
-    %dzetady = @(i,j) (zeta(Ip1(i),J(j)) - zeta(Im1(i),J(j)))/(2*dy);
-    
-    d3psidx3 = @(i,j) (1/2*dx^3) * (-psi(Im2(i),J(j)) + 2 * psi(Im1(i),J(j)) ...
-            - 2 * psi(Ip1(i),J(j)) + psi(Ip2(i),J(j)));
-    d3psidy3 = @(i,j) (1/2*dy^3) * (-psi(I(i),Jm2(j)) + 2 * psi(I(i),Jm1(j)) ...
-            - 2 * psi(I(i),Jp1(j)) + psi(I(i),Jp2(j)));
-    d3psidxdy2 = @(i,j) (1/dx*dy^2) * (psi(Ip1(i),Jm1(j)) - psi(Im1(i),Jm1(j)) ...
-            - 2 * psi(Ip1(i),J(j)) + 2*psi(Im1(i),J(j)) ...
-            + psi(Ip1(i),Jp1(j)) - psi(Im1(i),Jp1(j)));
-    d3psidydx2 = @(i,j) (1/dy*dx^2) * (psi(Im1(i),Jp1(j)) - psi(Im1(i),Jm1(j)) ...
-            - 2 * psi(Ip1(i),J(j)) + 2*psi(Im1(i),J(j)) ...
-            + psi(Ip1(i),Jp1(j)) - psi(Im1(i),Jp1(j)));
+
     np2 = zeros(Nx,Ny);
     for i = 1:length(I)
         for j = 1:length(J)
-            np2(i,j) = gm * ( dpsidy(i,j) * (d3psidx3(i,j) + d3psidxdy2(i,j)) ...
-                    - dpsidx(i,j) * ( d3psidydx2(i,j) + d3psidy3(i,j) ) );
+            dpsidx = psi(Ip1(i),J(j))/(2*dx) - psi(Im1(i),J(j))/(2*dx);
+            dpsidy = psi(I(i),Jp1(j))/(2*dy) - psi(I(i),Jm1(j))/(2*dy);
+            d3psidx3 = (1/(2*dx^3)) * (-psi(Im2(i),J(j)) + 2 * psi(Im1(i),J(j)) ...
+                    - 2 * psi(Ip1(i),J(j)) + psi(Ip2(i),J(j)));
+            d3psidy3 = (1/(2*dy^3)) * (-psi(I(i),Jm2(j)) + 2 * psi(I(i),Jm1(j)) ...
+                    - 2 * psi(I(i),Jp1(j)) + psi(I(i),Jp2(j)));
+            d3psidxdy2 = (1/(2*dx*dy^2)) * (psi(Ip1(i),Jm1(j)) - psi(Im1(i),Jm1(j)) ...
+                    - 2 * psi(Ip1(i),J(j)) + 2*psi(Im1(i),J(j)) ...
+                    + psi(Ip1(i),Jp1(j)) - psi(Im1(i),Jp1(j)));
+            d3psidydx2 = (1/(2*dy*dx^2)) * (psi(Im1(i),Jp1(j)) - psi(Im1(i),Jm1(j)) ...
+                    - 2 * psi(I(i),Jp1(j)) + 2 * psi(I(i),Jm1(j)) ...
+                    + psi(Ip1(i),Jp1(j)) - psi(Ip1(i),Jm1(j)));
+            % if gmPos == 1
+            %     np2(i,j) = ( dpsidy * ( d3psidx3 + d3psidxdy2 ) ...
+            %         - dpsidx * ( d3psidydx2 + d3psidy3 ) );
+            % elseif gmPos == 2
+            np2(i,j) = -gm * ( dpsidy * (d3psidx3 + d3psidxdy2) ...
+                    - dpsidx * (d3psidydx2 + d3psidy3) );
+            % else
+            %     error('gmPos must be either 1 or 2');
+            % end
         end
     end
 end
 
-function psi = rk2eq1(psi,zeta,para,dynfunc)
+
+function psitilde = rk2eq1(psi,zeta,para,dynfunc)
     dt = para(5);
     k1 = dynfunc(psi,zeta,para);
-    %u1 = u+k1*dt;
     k2 = dynfunc(psi+k1*dt,zeta,para);
-    psi = psi + dt*((k1+k2)/2);
+    psitilde = psi + dt*((k1+k2)/2);
 end
 
-function psi = rk2eq2(psi,para,dynfunc)
+function omztilde = rk2eq2(omz,psi,para,dynfunc)
     dt = para(5);
-    k1 = dynfunc(psi,para);
-    %u1 = u+k1*dt;
-    k2 = dynfunc(psi+k1*dt,para);
-    psi = psi + dt*((k1+k2)/2);
+    k1 = dynfunc(omz,psi,para);
+    k2 = dynfunc(omz+k1*dt,psi,para);
+    omztilde = omz + dt*((k1+k2)/2);
 end
 
 function u = rk4(u,dynFunc,h)
@@ -324,6 +573,20 @@ function u = rk4(u,dynFunc,h)
     k4 = dynFunc(u + h*k3);
     % dynamics
     u = u + (1/6)*h*(k1 + 2*k2 + 2*k3 + k4);
+end
+
+
+function xnew = gauss_seidel(A, b, x)
+    N = length(x);
+    xnew = zeros(N,1);
+    iters = 0;
+    while max(abs(A*x-b)) > 1e-5
+        for i = 1:N
+            xnew(i) = ( b(i) - ( sum(A(i,:)*x) - A(i,i)*x(i) ) )/A(i,i);
+            x(i) = xnew(i);
+        end
+        iters = iters+1;
+    end
 end
 
 function xvec = latToVec(x)
