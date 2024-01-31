@@ -1,4 +1,5 @@
 % GSH
+% Aditya Raj - Jan 30, 2024
 
 close all;
 clear all;
@@ -7,14 +8,13 @@ addpath('../src/');
 mfa = '/media'; % media folder address
 dfa = '/data'; % saved data folder address
 
-
 %% control parameters
 eps = 0.7;
 
 % ----mean flow----
 sig = 2;
-c = sqrt(0.1);
-gm = 50;
+csq = 0.1; c = sqrt(csq);
+gm = 20;
 
 % ----no mean flow----
 % sig = 0;
@@ -30,7 +30,7 @@ delta = dx;
 dt = 0.2; % time step size
 h = dt;
 
-time_units = 50;
+time_units = 100;
 tmax = time_units/dt; % total time steps
 
 % ----domain size----
@@ -45,8 +45,15 @@ gmPos = 2; % position of gm; 1 for eqn 1, 2 for eqn 2 (Karimi)
 gsiters = 5; % number of iterations for gauss seidel
 
 % ----random seed----
-seed = 2;
+seed = 5;
 rng(seed,"twister");
+
+% ----video----
+altframes = 2;
+run_name = join([num2str(Nx) 'x' num2str(Ny) 'eps' num2str(round(100*eps)) ...
+            'sig' num2str(sig) 'csq0-' num2str(round(100*csq)) ...
+            'gm' num2str(gm) 't' num2str(time_units) 's' num2str(seed)]);
+
 
 % ----parameter vector----
 para = [eps % 1
@@ -61,8 +68,6 @@ para = [eps % 1
     Ny      % 10
     gmPos]; % 11
 
-% ----video----
-altframes = 1;
 
 %% Initial conditions and preallocation
 
@@ -97,7 +102,8 @@ zetavec = zeros(N,tmax);
 % omzmat = -0.01 + (0.01+0.01)*rand(Nx,Ny); % scalar field
 seed = 4;
 rng(seed,"twister");
-omzmat = -0.01 + (0.01+0.01) * rand(Nx,Ny);
+% omzmat = -0.01 + (0.01+0.01) * rand(Nx,Ny);
+omzmat = -1 + (1+1)*rand(Nx,Ny);
 omzvec = zeros(N,1);
 
 tic
@@ -289,7 +295,8 @@ toc
 
 %% dynamics video
 
-dynVideoFilename = 'gshDynVideo20';
+dynvideoname = 'gshDyn';
+dynVideoFilename = join([dynvideoname run_name]);
 lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
 %lat_dyn_video.FrameRate = 30;
 open(lat_dyn_video);
@@ -298,18 +305,19 @@ figure();
 % hold on;
 for t = 1:altframes:tmax
     % imagesc(psilat(:,:,t));
-    plot1 = contourf(psimat(:,:,t), 'Linecolor', 'none');
+    plot1 = contourf(psimat(:,:,t),'levels',0.1, 'Linecolor', 'none');
     set(gca,'YDir','normal');
     hold on;
     % imagesc(zetalat(:,:,t));
     colorbar;
     colormap jet
-    clim([-0.9 0.8]);
-    plot2 = quiver(X,Y,4*vlat(:,:,t),4*ulat(:,:,t));
-    
+    clim([-0.8 0.8]);
+    plot2 = quiver(X,Y,vlat(:,:,t),ulat(:,:,t),2,'black');
+    xlim([1 Nx]);
+    ylim([1 Ny]);
     frame = getframe(gcf);
     writeVideo(lat_dyn_video,frame);
-    % clear plot1 plot2;
+    clear plot1 plot2;
     hold off;
 end
 hold off;
@@ -317,34 +325,35 @@ close(lat_dyn_video);
 
 %% zeta video
 
-zetaVideoFilename = 'gshZetaVideo20';
-zeta_dyn_video = VideoWriter(zetaVideoFilename, 'MPEG-4');
-%lat_dyn_video.FrameRate = 30;
-open(zeta_dyn_video);
-[X,Y] = meshgrid(1:Nx,1:Ny);
-figure();
-% hold on;
-for t = 1:altframes:tmax
-    plot2 = quiver(X,Y,vlat(:,:,t),ulat(:,:,t));
-    xlim([0 Nx]);
-    ylim([0 Ny]);
-    % set(gca,'YDir','normal');
-    frame = getframe(gcf);
-    writeVideo(zeta_dyn_video,frame);
-    % clear plot1 plot2;
-    hold off;
-end
-hold off;
-close(zeta_dyn_video);
+% zetavideoname = 'gshZeta';
+% zetaVideoFilename = join([zetavideoname videoname]);
+% zeta_dyn_video = VideoWriter(zetaVideoFilename, 'MPEG-4');
+% %lat_dyn_video.FrameRate = 30;
+% open(zeta_dyn_video);
+% [X,Y] = meshgrid(1:Nx,1:Ny);
+% figure();
+% % hold on;
+% for t = 1:altframes:tmax
+%     plot2 = quiver(X,Y,vlat(:,:,t),ulat(:,:,t));
+%     xlim([0 Nx]);
+%     ylim([0 Ny]);
+%     % set(gca,'YDir','normal');
+%     frame = getframe(gcf);
+%     writeVideo(zeta_dyn_video,frame);
+%     % clear plot1 plot2;
+%     hold off;
+% end
+% hold off;
+% close(zeta_dyn_video);
 
 %% psi figure
 
-figure;
-imagesc(psimat(:,:,tmax)');
-set(gca,'YDir','normal');
-colorbar;
-colormap jet;
-title('\psi');
+% figure;
+% imagesc(psimat(:,:,tmax)');
+% set(gca,'YDir','normal');
+% colorbar;
+% colormap jet;
+% title('\psi');
 
 % figure;
 % imagesc(ulat(:,:,6)');
@@ -352,26 +361,45 @@ title('\psi');
 % colorbar;
 % colormap jet;
 
+%%
 figure;
-contourf(psimat(:,:,tmax)', 'Linecolor', 'none');
+contourf(psimat(:,:,tmax),'levels',0.1, 'Linecolor', 'none');
+clim([-1 1]);
+hold on;
+quiver(X,Y,vlat(:,:,tmax),ulat(:,:,tmax),2,'black');
+hold off;
 set(gca,'YDir','normal');
+xlim([1 Nx]);
+ylim([4 Ny]);
 colorbar;
 colormap jet;
 title('\psi');
 
-figure;
-imagesc(psivec');
-set(gca,'YDir','normal');
-colorbar; 
-colormap jet;
-
-figure; imagesc(ulat(:,:,end)); colorbar; title('u');
-figure; imagesc(vlat(:,:,end)); colorbar; title('v');
+%% zeta contour figure
 
 figure;
 contourf(zetamat(:,:,end),'Linecolor','none');
+set(gca,'YDir','normal');
+colormap jet;
 colorbar;
 title('\zeta');
+
+
+%% zeta contour figure with rolls
+timestep = tmax; % change this to desired time step (where spirals are seen)
+figure;
+p1 = contourf(abs(zetamat(:,:,timestep)),'levels',0.1, 'Linecolor', 'none');
+set(gca,'YDir','normal');
+xlim([1 Nx]);
+ylim([1 Ny]);
+colormap jet;
+colorbar;
+hold on;
+p2 = quiver(X,Y,2*vlat(:,:,timestep),2*ulat(:,:,timestep),2,'black');
+% clim([0 5]);
+p3 = contourf(psimat(:,:,timestep), 'levels', 1, 'Linecolor', 'black', ...
+    'Linewidth', 3,'Facecolor', 'none');
+hold off;
 
 %% Functions
 
@@ -411,8 +439,40 @@ function zeta = zetafunc(omzmat, zetamat, para)
         end
         b = lapl - (-omzmat);
         difference(k) = max(max(abs(b)));
+        % difference(iter+1) = abs(max(max(lapl-(-omzmat))));
         zetamat = zeta;
+
+        % zetaold = zetan;
+        % difference(k) = max(max(abs(zeta-zetaold)));
+        % % difference(k) = mean(mean(abs(zeta-zetaold)));
+        % if k > 1
+        %     % if abs(difference(k) - difference(k-1)) < 1e-6
+        %     if abs(difference(k)) < 1e-10
+        %         break;
+        %     end
+        % end
+
+        
+        % for i = 1:length(I) % laplacian of zeta
+        %     for j = 1:length(J)
+        %         Axmat(i,j) = (1/(delta^2)) * ...
+        %                     ( zeta(Im1(i),J(j)) + zeta(Ip1(i),J(j)) ...
+        %                         - 4 * zeta(I(i),J(j)) + ...
+        %                     + zeta(I(i),Jm1(j)) + zeta(I(i),Jp1(j)) );
+        %     end
+        % end
+        % 
+        % Ax = latToVec(Axmat);
+        % b = - latToVec(omzlat);
+        % dif = Ax-b;
+        % residual(k) = norm(dif);
+        % if residual(k) < 1e-5
+        %     break;
+        % end
+        % zetan = zeta;
     end
+    % figure; plot(residual,'-o');
+
 end
 
 
@@ -554,6 +614,7 @@ end
 function psitilde = rk2eq1(psi,zeta,para,dynfunc)
     dt = para(5);
     k1 = dynfunc(psi,zeta,para);
+    %u1 = u+k1*dt;
     k2 = dynfunc(psi+k1*dt,zeta,para);
     psitilde = psi + dt*((k1+k2)/2);
 end
@@ -561,6 +622,7 @@ end
 function omztilde = rk2eq2(omz,psi,para,dynfunc)
     dt = para(5);
     k1 = dynfunc(omz,psi,para);
+    %u1 = u+k1*dt;
     k2 = dynfunc(omz+k1*dt,psi,para);
     omztilde = omz + dt*((k1+k2)/2);
 end
