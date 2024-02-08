@@ -1,0 +1,92 @@
+
+
+%% dynamics video
+
+altframes = 2;
+
+    dynvideoname = 'gshDyn';
+    dynVideoFilename = join([dynvideoname p.run_name]);
+    lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
+    %lat_dyn_video.FrameRate = 30;
+    open(lat_dyn_video);
+    [X,Y] = meshgrid(1:p.Nx,1:p.Ny);
+    figure();
+    % hold on;
+    for t = 1:altframes:p.totimeu
+        % imagesc(psilat(:,:,t));
+        plot1 = contourf(psimat(:,:,t),'levels',0.1, 'Linecolor', 'none');
+        set(gca,'YDir','normal');
+        hold on;
+        % imagesc(zetalat(:,:,t));
+        colorbar;
+        colormap jet
+        clim([-0.8 0.8]);
+        plot2 = quiver(X,Y,vlat(:,:,t),ulat(:,:,t),2,'black');
+        xlim([1 p.Nx]);
+        ylim([1 p.Ny]);
+        frame = getframe(gcf);
+        writeVideo(lat_dyn_video,frame);
+        clear plot1 plot2;
+        hold off;
+    end
+    hold off;
+    close(lat_dyn_video);
+
+
+
+%% psi figure
+
+% figure;
+% imagesc(psimat(:,:,tmax)');
+% set(gca,'YDir','normal');
+% colorbar;
+% colormap jet;
+% title('\psi');
+
+% figure;
+% imagesc(ulat(:,:,6)');
+% set(gca,'YDir','normal');
+% colorbar;
+% colormap jet;
+
+%%
+figure;
+contourf(psimat(:,:,p.totimeu),'levels',0.1, 'Linecolor', 'none');
+clim([-1 1]);
+hold on;
+[X,Y] = meshgrid(1:p.Nx,1:p.Ny);
+quiver(X,Y,vlat(:,:,p.totimeu),ulat(:,:,p.totimeu),2,'black');
+hold off;
+set(gca,'YDir','normal');
+xlim([1 p.Nx]);
+ylim([4 p.Ny]);
+colorbar;
+colormap jet;
+title('\psi');
+
+%% zeta contour figure
+
+figure;
+contourf(zetamat(:,:,p.totimeu),'Linecolor','none');
+set(gca,'YDir','normal');
+colormap jet;
+colorbar;
+title('\zeta');
+
+
+%% zeta contour figure with rolls
+% timestep = tmax; % change this to desired time step (where spirals are seen)
+% figure;
+% p1 = contourf(abs(zetamat(:,:,timestep)),'levels',0.1, 'Linecolor', 'none');
+% set(gca,'YDir','normal');
+% xlim([1 Nx]);
+% ylim([1 Ny]);
+% colormap jet;
+% colorbar;
+% hold on;
+% p2 = quiver(X,Y,2*vlat(:,:,timestep),2*ulat(:,:,timestep),2,'black');
+% % clim([0 5]);
+% p3 = contourf(psimat(:,:,timestep), 'levels', 1, 'Linecolor', 'black', ...
+%     'Linewidth', 3,'Facecolor', 'none');
+% hold off;
+

@@ -12,6 +12,9 @@ addpath('../src/');
 mfa = '/media'; % media folder address
 dfa = '/data'; % saved data folder address
 
+%% Video switch
+makeVideo = 0;
+
 %% control parameters
 eps = 0.7;
 
@@ -110,8 +113,8 @@ psivec(:,1) = latToVec(psimat(:,:,1));
 zetamat = zeros(Nx,Ny,tmax); % scalar field
 zetavec = zeros(N,tmax);
 % omzmat = -0.01 + (0.01+0.01)*rand(Nx,Ny); % scalar field
-seed = 4;
-rng(seed,"twister");
+
+rng(seed + 1,"twister");
 % omzmat = -0.01 + (0.01+0.01) * rand(Nx,Ny);
 omzmat = -1 + (1+1)*rand(Nx,Ny);
 omzvec = zeros(N,1);
@@ -277,34 +280,35 @@ toc
 
 %% dynamics video
 
-dynvideoname = 'gshDyn';
-dynVideoFilename = join([dynvideoname run_name]);
-lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
-%lat_dyn_video.FrameRate = 30;
-open(lat_dyn_video);
-[X,Y] = meshgrid(1:Nx,1:Ny);
-figure();
-% hold on;
-for t = 1:altframes:tmax
-    % imagesc(psilat(:,:,t));
-    plot1 = contourf(psimat(:,:,t),'levels',0.1, 'Linecolor', 'none');
-    set(gca,'YDir','normal');
-    hold on;
-    % imagesc(zetalat(:,:,t));
-    colorbar;
-    colormap jet
-    clim([-0.8 0.8]);
-    plot2 = quiver(X,Y,vlat(:,:,t),ulat(:,:,t),2,'black');
-    xlim([1 Nx]);
-    ylim([1 Ny]);
-    frame = getframe(gcf);
-    writeVideo(lat_dyn_video,frame);
-    clear plot1 plot2;
+if makeVideo == 1
+    dynvideoname = 'gshDyn';
+    dynVideoFilename = join([dynvideoname run_name]);
+    lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
+    %lat_dyn_video.FrameRate = 30;
+    open(lat_dyn_video);
+    [X,Y] = meshgrid(1:Nx,1:Ny);
+    figure();
+    % hold on;
+    for t = 1:altframes:tmax
+        % imagesc(psilat(:,:,t));
+        plot1 = contourf(psimat(:,:,t),'levels',0.1, 'Linecolor', 'none');
+        set(gca,'YDir','normal');
+        hold on;
+        % imagesc(zetalat(:,:,t));
+        colorbar;
+        colormap jet
+        clim([-0.8 0.8]);
+        plot2 = quiver(X,Y,vlat(:,:,t),ulat(:,:,t),2,'black');
+        xlim([1 Nx]);
+        ylim([1 Ny]);
+        frame = getframe(gcf);
+        writeVideo(lat_dyn_video,frame);
+        clear plot1 plot2;
+        hold off;
+    end
     hold off;
+    close(lat_dyn_video);
 end
-hold off;
-close(lat_dyn_video);
-
 
 %% psi figure
 
@@ -323,6 +327,7 @@ close(lat_dyn_video);
 
 %%
 figure;
+[X,Y] = meshgrid(1:Nx,1:Ny);
 contourf(psimat(:,:,tmax),'levels',0.1, 'Linecolor', 'none');
 clim([-1 1]);
 hold on;
