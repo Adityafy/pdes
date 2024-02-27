@@ -32,7 +32,7 @@ dx = lam_0/8; % node spacing
 dy = dx;
 delta = dx;
 
-dt = 0.05; % time step size
+dt = 0.1; % time step size
 h = dt;
 
 time_units = 25;
@@ -139,7 +139,7 @@ fpv(:,1) = [latToVec(dpsi1(:,:,1)); latToVec(domz1(:,:,1))]./ norm(fpv(:,1));
 fpvmag = norm(fpv(:,1));
 
 %% lambda1 calculation preallocation
-normtime = 2;
+normtime = 3;
 lam1inst = [];
 
 
@@ -270,11 +270,56 @@ Zzeta = zeros(N,1);
  toc
 
 %% Time integration
+fprintf('Running transients...\n');
+
+for t = 1:tmax    
+    %------------------ zeta, iterative ------------------------
+    zetamat(:,:,t) = iterativeZetaOmz(omzmat(:,:,t),zetamat(:,:,t),p);
+    [ulat(:,:,t),vlat(:,:,t)] = uvzeta(zetamat(:,:,t),p);
+    
+    %------------------ explicit nonlinear --------------------
+    psitilde = rk2gsh1(psimat(:,:,t),zetamat(:,:,t),p,@nlpgsh1); 
+    psitilde = latToVec(psitilde);
+
+    omztilde = rk2gsh2(omzmat(:,:,t),psimat(:,:,t),p,@nlpgsh2);
+    omztilde = latToVec(omztilde);
+    
+    %------------------ implicit CN linear ----------------------
+    psivec(:,t+1) = matdivpsi * psitilde;
+    omzvec(:,t+1) = matdivomz * omztilde;
+
+    %--------- converting from vector to matrix ----------
+    psimat(:,:,t+1) = vecToLat(psivec(:,t+1),Nx,Ny);
+    omzmat(:,:,t+1) = vecToLat(omzvec(:,t+1),Nx,Ny);
+    
+    
+    zetamat(:,:,t+1) = zetamat(:,:,t);
+    if rem(t,tmax/10) == 0
+        fprintf('This is time step %i, ',t);
+        toc
+    end
+    
+end
+toc
+
+%% Initial conditions after transients
+
+psimat = psimat(:,:,tmax); % scalar field
+psivec = latToVec(psimat);
+
+zetamat = zetamat(:,:,tmax); % scalar field
+zetavec = latToVec(zetamat);
+
+omzmat = omzmat(:,:,tmax);
+omzvec = latToVec(omzmat);
+
+
+%% Tangent space time integration
 fprintf('Running time integration...\n');
 
 for t = 1:tmax    
     %------------------ zeta, iterative ------------------------
-    zetamat(:,:,t) = zetafunc(omzmat(:,:,t),zetamat(:,:,t),p);
+    zetamat(:,:,t) = iterativeZetaOmz(omzmat(:,:,t),zetamat(:,:,t),p);
     [ulat(:,:,t),vlat(:,:,t)] = uvzeta(zetamat(:,:,t),p);
     
     %------------------ explicit nonlinear --------------------
@@ -293,10 +338,10 @@ for t = 1:tmax
     omzmat(:,:,t+1) = vecToLat(omzvec(:,t+1),Nx,Ny);
     
     %------------------ explicit TS linear ----------------------
-    dzeta1(:,:,t) = zetafunc(domz1(:,:,t),dzeta1(:,:,t),p);
-    dpsi1(:,:,t+1) = rk2ts1(psimat(:,:,t),zetamat(:,:,t),dpsi1(:,:,t), ...
+    dzeta1(:,:,t) = iterativeZetaOmz(domz1(:,:,t),dzeta1(:,:,t),p);
+    dpsi1(:,:,t+1) = rk2tsgsh1(psimat(:,:,t),zetamat(:,:,t),dpsi1(:,:,t), ...
                         dzeta1(:,:,t),p,@ts1exp,@fds);
-    domz1(:,:,t+1) = rk2ts2(omzmat(:,:,t),psimat(:,:,t),domz1(:,:,t), ...
+    domz1(:,:,t+1) = rk2tsgsh2(omzmat(:,:,t),psimat(:,:,t),domz1(:,:,t), ...
                         dpsi1(:,:,t),p,@ts2exp,@fds);
     fpv(:,t+1) = [latToVec(dpsi1(:,:,t)); latToVec(domz1(:,:,t))];
     fpvmag(t) = norm(fpv(:,t));
@@ -391,6 +436,9 @@ colormap jet;
 colorbar;
 title('\zeta');
 
+figure; imagesc(dpsi1(:,:,tmax)); colorbar;
+figure; plot(cumsum(lam1inst)./(1:length(lam1inst)));
+figure; plot(fpvmag, '-o');
 
 %% zeta contour figure with rolls
 % timestep = tmax; % change this to desired time step (where spirals are seen)
@@ -410,7 +458,7 @@ title('\zeta');
 
 %% Functions
 
-function zeta = zetafunc(omzmat, zetamat, p)
+function zeta = iterativeZetaOmz(omzmat, zetamat, p)
     
     delta = p.dx;
 
@@ -450,28 +498,7 @@ function zeta = zetafunc(omzmat, zetamat, p)
 end
 
 
-function lapl = laplacian(var, p)
 
-    delta = p.dx;
-
-    I = p.I;
-    J = p.J;
-    Ip1 = p.Ip1;
-    Im1 = p.Im1;
-    Jp1 = p.Jp1;
-    Jm1 = p.Jm1;
-    
-    lapl = zeros(size(var));
-
-    for i = 1:length(I)
-        for j = 1:length(J)
-            lapl(i,j) = (1/(delta^2)) * ...
-                        ( var(Im1(i),J(j)) + var(Ip1(i),J(j)) ...
-                            - 4 * var(I(i),J(j)) + ...
-                        + var(I(i),Jm1(j)) + var(I(i),Jp1(j)) );
-        end
-    end
-end
 
 function [u,v] = uvzeta(zeta,p)
     
@@ -534,7 +561,7 @@ function np1 = nlpgsh1(psit,zetat,p)
 end
 
 
-function np2 = nlpgsh2(omz,psi,p)   
+function np2 = nlpgsh2(~,psi,p)   
     gm = p.gm;
     dx = p.dx;
     dy = p.dy;
@@ -620,7 +647,7 @@ function dpsirhs = ts1exp(psi,zeta,dpsi,dzeta,p,fdsfunc)
     end
 end
 
-function domzrhs = ts2exp(omz,psi,domz,dpsi,p,fdsfunc)
+function domzrhs = ts2exp(~,psi,domz,dpsi,p,fdsfunc)
     Nx = p.Nx;
     Ny = p.Ny;
     
@@ -681,7 +708,8 @@ function omztilde = rk2gsh2(omz,psi,p,dynfunc)
     omztilde = omz + dt*((k1+k2)/2);
 end
 
-function dpsinp1 = rk2ts1(psi,zeta,dpsi,dzeta,p,tsdynfunc,fdsfunc)
+function dpsinp1 = rk2tsgsh1(psi,zeta,dpsi,dzeta,p,tsdynfunc,fdsfunc)
+    % np1 = n+1
     dt = p.dt;
     k1 = tsdynfunc(psi,zeta,dpsi,dzeta,p,fdsfunc);
     %u1 = u+k1*dt;
@@ -689,12 +717,13 @@ function dpsinp1 = rk2ts1(psi,zeta,dpsi,dzeta,p,tsdynfunc,fdsfunc)
     dpsinp1 = dpsi + dt*((k1+k2)/2);
 end
 
-function domznp2 = rk2ts2(omz,psi,domz,dpsi,p,tsdynfunc,fdsfunc)
+function domznp1 = rk2tsgsh2(omz,psi,domz,dpsi,p,tsdynfunc,fdsfunc)
+    % np1 = n+1
     dt = p.dt;
     k1 = tsdynfunc(omz,psi,domz,dpsi,p,fdsfunc);
     %u1 = u+k1*dt;
     k2 = tsdynfunc(omz,psi,domz+k1*dt,dpsi,p,fdsfunc);
-    domznp2 = domz + dt*((k1+k2)/2);
+    domznp1 = domz + dt*((k1+k2)/2);
 end
 
 
@@ -764,7 +793,7 @@ function derivtv = fds(v,xd,yd,i,j,p)
     end
     %     end
     % end
-end
+end 
 
 function xvec = latToVec(x)
     [Nx,Ny] = size(x);
@@ -800,6 +829,28 @@ function xlat = vecToLat(x,Nx,Ny)
     end
 end
 
+% function lapl = laplacian(var, p)
+% 
+%     delta = p.dx;
+% 
+%     I = p.I;
+%     J = p.J;
+%     Ip1 = p.Ip1;
+%     Im1 = p.Im1;
+%     Jp1 = p.Jp1;
+%     Jm1 = p.Jm1;
+% 
+%     lapl = zeros(size(var));
+% 
+%     for i = 1:length(I)
+%         for j = 1:length(J)
+%             lapl(i,j) = (1/(delta^2)) * ...
+%                         ( var(Im1(i),J(j)) + var(Ip1(i),J(j)) ...
+%                             - 4 * var(I(i),J(j)) + ...
+%                         + var(I(i),Jm1(j)) + var(I(i),Jp1(j)) );
+%         end
+%     end
+% end
 
 % function u = rk4(u,dynFunc,h)
 %     % k values

@@ -1,8 +1,10 @@
-function derivtv = fds(v,xd,yd,i,j,p)
-% derivtv = fds(v,xd,yd,i,j,p)
-% Yields the spatial finite difference derivative.
+function derivtv = sfdd(v,xd,yd,i,j,p)
+% derivtv = sfdd(v,xd,yd,i,j,p)
+% Yields the spatial finite difference derivative (sfdd) for GSH calcs.
+% 2nd order accurate central differences.
+% Periodic Boundary Conditions!!!
 % Not all derivatives are possible.
-% Example: d3v/dxdy2(i,j) = fds(v,1,2,i,j,p)
+% Example: d3v/dxdy2(i,j) = sfdd(v,1,2,i,j,p)
     dx = p.dx;
     dy = p.dy;
 

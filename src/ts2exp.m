@@ -1,7 +1,7 @@
-function domzrhs = ts2exp(~,psi,domz,dpsi,p,fdsfunc)
+function domzrhs = ts2exp(~,psi,domz,dpsi,p,sfddfunc)
 % domzrhs = ts2exp(~,psi,domz,dpsi,p,fdsfunc)
-% Calculates the RHS of the first tangent space equation for GSH
-% calculations, for the explicit time marching methods. 
+% Calculates the RHS of the second tangent space equation for GSH
+% calculations, via the explicit time marching methods. 
 % Dependent on the spatial finite difference derivative.
     Nx = p.Nx;
     Ny = p.Ny;
@@ -17,24 +17,24 @@ function domzrhs = ts2exp(~,psi,domz,dpsi,p,fdsfunc)
     for i = 1:length(I)
         for j = 1:length(J)
             
-            d2domzdx2 = fdsfunc(domz,2,0,i,j,p);
-            d2domzdy2 = fdsfunc(domz,0,2,i,j,p);
+            d2domzdx2 = sfddfunc(domz,2,0,i,j,p);
+            d2domzdy2 = sfddfunc(domz,0,2,i,j,p);
 
-            dpsidy = fdsfunc(psi,0,1,i,j,p);
-            dpsidx = fdsfunc(psi,1,0,i,j,p);
+            dpsidy = sfddfunc(psi,0,1,i,j,p);
+            dpsidx = sfddfunc(psi,1,0,i,j,p);
 
-            ddpsidy = fdsfunc(dpsi,0,1,i,j,p);
-            ddpsidx = fdsfunc(dpsi,1,0,i,j,p);
+            ddpsidy = sfddfunc(dpsi,0,1,i,j,p);
+            ddpsidx = sfddfunc(dpsi,1,0,i,j,p);
             
-            d3dpsidx3 = fdsfunc(dpsi,3,0,i,j,p);
-            d3dpsidxdy2 = fdsfunc(dpsi,1,2,i,j,p);
-            d3dpsidydx2 = fdsfunc(dpsi,2,1,i,j,p);
-            d3dpsidy3 = fdsfunc(dpsi,0,3,i,j,p);
+            d3dpsidx3 = sfddfunc(dpsi,3,0,i,j,p);
+            d3dpsidxdy2 = sfddfunc(dpsi,1,2,i,j,p);
+            d3dpsidydx2 = sfddfunc(dpsi,2,1,i,j,p);
+            d3dpsidy3 = sfddfunc(dpsi,0,3,i,j,p);
             
-            d3psidx3 = fdsfunc(psi,3,0,i,j,p);
-            d3psidxdy2 = fdsfunc(psi,1,2,i,j,p);
-            d3psidydx2 = fdsfunc(psi,2,1,i,j,p);
-            d3psidy3 = fdsfunc(psi,0,3,i,j,p);
+            d3psidx3 = sfddfunc(psi,3,0,i,j,p);
+            d3psidxdy2 = sfddfunc(psi,1,2,i,j,p);
+            d3psidydx2 = sfddfunc(psi,2,1,i,j,p);
+            d3psidy3 = sfddfunc(psi,0,3,i,j,p);
 
             domzrhs(i,j) = sig * d2domzdx2 + sig * d2domzdy2 ...
                         - (c^2) * domz(I(i),J(j)) ...

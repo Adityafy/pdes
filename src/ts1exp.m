@@ -1,7 +1,7 @@
-function dpsirhs = ts1exp(psi,zeta,dpsi,dzeta,p,fdsfunc)
+function dpsirhs = ts1exp(psi,zeta,dpsi,dzeta,p,sfddfunc)
 % dpsirhs = ts1exp(psi,zeta,dpsi,dzeta,p,fdsfunc)
 % Calculates the RHS of the first tangent space equation for GSH
-% calculations, for the explicit time marching methods. 
+% calculations, via the explicit time marching methods. 
 % Dependent on the spatial finite difference derivative.
     Nx = p.Nx;
     Ny = p.Ny;
@@ -14,22 +14,22 @@ function dpsirhs = ts1exp(psi,zeta,dpsi,dzeta,p,fdsfunc)
     dpsirhs = zeros(Nx,Ny);
     for i = 1:length(I)
         for j = 1:length(J)
-            dzetady = fdsfunc(zeta,0,1,i,j,p);
-            dzetadx = fdsfunc(zeta,1,0,i,j,p);
-            dpsidy = fdsfunc(psi,0,1,i,j,p);
-            dpsidx = fdsfunc(psi,1,0,i,j,p);
+            dzetady = sfddfunc(zeta,0,1,i,j,p);
+            dzetadx = sfddfunc(zeta,1,0,i,j,p);
+            dpsidy = sfddfunc(psi,0,1,i,j,p);
+            dpsidx = sfddfunc(psi,1,0,i,j,p);
 
-            ddzetady = fdsfunc(dzeta,0,1,i,j,p);
-            ddzetadx = fdsfunc(dzeta,1,0,i,j,p);
-            ddpsidy = fdsfunc(dpsi,0,1,i,j,p);
-            ddpsidx = fdsfunc(dpsi,1,0,i,j,p);
+            ddzetady = sfddfunc(dzeta,0,1,i,j,p);
+            ddzetadx = sfddfunc(dzeta,1,0,i,j,p);
+            ddpsidy = sfddfunc(dpsi,0,1,i,j,p);
+            ddpsidx = sfddfunc(dpsi,1,0,i,j,p);
             
-            d4dpsidx4 = fdsfunc(dpsi,4,0,i,j,p);
-            d4dpsidx2dy2 = fdsfunc(dpsi,2,2,i,j,p);
-            d4dpsidy4 = fdsfunc(dpsi,0,4,i,j,p);
+            d4dpsidx4 = sfddfunc(dpsi,4,0,i,j,p);
+            d4dpsidx2dy2 = sfddfunc(dpsi,2,2,i,j,p);
+            d4dpsidy4 = sfddfunc(dpsi,0,4,i,j,p);
 
-            d2dpsidx2 = fdsfunc(dpsi,2,0,i,j,p);
-            d2dpsidy2 = fdsfunc(dpsi,0,2,i,j,p);
+            d2dpsidx2 = sfddfunc(dpsi,2,0,i,j,p);
+            d2dpsidy2 = sfddfunc(dpsi,0,2,i,j,p);
 
             dpsirhs(i,j) = - dzetady * ddpsidx + dzetadx * ddpsidy ...
                        - ddzetady * dpsidx + ddzetadx * dpsidy ...

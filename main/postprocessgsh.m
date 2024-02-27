@@ -12,9 +12,9 @@ altframes = 2;
     [X,Y] = meshgrid(1:p.Nx,1:p.Ny);
     figure();
     % hold on;
-    for t = 1:altframes:p.totimeu
+    for t = 1:50:length(psi(1,1,:))-1
         % imagesc(psilat(:,:,t));
-        plot1 = contourf(psimat(:,:,t),'levels',0.1, 'Linecolor', 'none');
+        plot1 = contourf(psi(:,:,t),'levels',0.1, 'Linecolor', 'none');
         set(gca,'YDir','normal');
         hold on;
         % imagesc(zetalat(:,:,t));
@@ -51,11 +51,11 @@ altframes = 2;
 
 %%
 figure;
-contourf(psimat(:,:,p.totimeu),'levels',0.1, 'Linecolor', 'none');
+contourf(psi(:,:,end-1),'levels',0.1, 'Linecolor', 'none');
 clim([-1 1]);
 hold on;
 [X,Y] = meshgrid(1:p.Nx,1:p.Ny);
-quiver(X,Y,vlat(:,:,p.totimeu),ulat(:,:,p.totimeu),2,'black');
+quiver(X,Y,vlat(:,:,end),ulat(:,:,end),2,'black');
 hold off;
 set(gca,'YDir','normal');
 xlim([1 p.Nx]);
@@ -63,6 +63,30 @@ ylim([4 p.Ny]);
 colorbar;
 colormap jet;
 title('\psi');
+
+%%
+figure;
+contourf(dpsi1(:,:,end-1),'levels',0.005, 'Linecolor', 'none');
+clim([-0.08 0.08]);
+colormap jet;
+title('\delta\psi_1');
+colorbar;
+
+%%
+figure;
+contourf(omz(:,:,end-1),'levels',0.1, 'Linecolor', 'none');
+clim([-1 1]);
+colormap jet;
+title('\Omega_z');
+colorbar;
+
+%%
+figure;
+contourf(domz1(:,:,end-1),'levels',0.005, 'Linecolor', 'none');
+clim([-0.1 0.1]);
+colormap jet;
+title('\delta\Omega_{z,1}');
+colorbar;
 
 %% zeta contour figure
 
