@@ -1,5 +1,5 @@
 function p = paramgsh(eps,sig,csq,gm,dx,dy,dt,rolls, ...
-    trtimeu,totimeu,normtime,seed)
+    trtimeu,totimeu,normtime,seed,intervals)
 % p = paramgsh(eps,sig,csq,gm,dx,dy,dt,rolls,trtimeu,totimeu,seed)
 % lam_0 is 2*pi
 % dx or dy should be taken as 2*pi/k, k is an integer
@@ -49,9 +49,10 @@ gsiters = 5; % number of iterations for gauss seidel
 rng(seed,"twister");
 
 % ------- running filename ---------
-run_name = join([num2str(Nx) 'x' num2str(Ny) 'eps' num2str(round(100*eps)) ...
+run_name = join([num2str(Nx) 'x' num2str(Ny) 'eps0-' num2str(round(100*eps)) ...
             'sig' num2str(sig) 'csq0-' num2str(round(100*csq)) ...
-            'gm' num2str(gm) 't' num2str(totimeu) 's' num2str(seed)]);
+            'gm' num2str(gm) 'nrt' num2str(normtime) 'trt' num2str(trtimeu) ...
+            'tot' num2str(totimeu) 's' num2str(seed)]);
 
 % ----video----
 altframes = 2;
@@ -68,6 +69,12 @@ Jm1 = circshift(J,1);
 Jp2 = circshift(J,-2);
 Jm2 = circshift(J,2);
 
+%-------- intervals ----------
+if tmax < intervals
+    error('Number of intervals is less than total time steps!');
+    fprintf('Total time steps = %g', p.tmax);
+    fprintf('Number of intervals = %g', p.intervals);
+end
 
 % ----  (p)arameter (struct)ure ----
 p = struct('eps', eps, 'sig', sig, 'c', c, 'gm', gm, 'dt', dt, ...
@@ -76,7 +83,7 @@ p = struct('eps', eps, 'sig', sig, 'c', c, 'gm', gm, 'dt', dt, ...
     'Im2', Im2,'Jp1', Jp1,'Jm1', Jm1,'Jp2', Jp2,'Jm2', Jm2, ...
     'gmPos', gmPos, 'run_name', run_name, 'lam_0', lam_0, ...
     'trtimeu', trtimeu, 'totimeu', totimeu, 'normtime', normtime, ...
-    'rolls', rolls, 'fpvictype', []);
+    'rolls', rolls, 'intervals', intervals);
 
 end
 

@@ -21,7 +21,7 @@ normtime = p.normtime;
 tnorm = normtime*dt;
 lam1inst = [];
 res = zeros(1, tmax);
-
+ 
 fprintf('\nEvolving the first perturbation vector...\n');
 
 for t = 1:tmax
@@ -35,7 +35,7 @@ for t = 1:tmax
     fpv(:,t+1) = [latToVec(dpsi1(:,:,t+1)); latToVec(domz1(:,:,t+1))];
     fpvmag(t+1) = norm(fpv(:,t+1));
     
-    %------------------ renormalization and LLE ----------------------
+    %---------------- renormalization and LLE -------------------
     if rem(t,normtime) == 0
         lam1inst = [lam1inst, ...
             (1/tnorm) * log(abs(norm(fpv(:,t+1))))];
