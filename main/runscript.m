@@ -63,7 +63,7 @@ toc
 % toc
 
 %% saving
-% save(join([p.run_name '.mat']), '-v7.3');
+save(join([p.run_name '.mat']), '-v7.3');
 
 %%
 % run('postprocessgsh.m');

@@ -4,11 +4,10 @@ addpath('../src/');
 Nx = p.Nx;
 Ny = p.Ny;
 N = p.N;
-tmax = p.tmax;
 
-dpsi1 = zeros(Nx,Ny,tmax);
+dpsi1 = zeros(Nx,Ny);
 
-domz1 = zeros(Nx,Ny,tmax); 
+domz1 = zeros(Nx,Ny); 
 
 if p.fpvictype < 0 % this is default
     % dpsi1(1,1,1) = 0.001;
