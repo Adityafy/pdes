@@ -28,10 +28,10 @@ fpvmag = norm(fpv);
 
 dzeta1mat = zeros(Nx,Ny);
 
-normtime = p.normtime;
-tnorm = normtime*dt;
+tN = p.tN;
+nnorm = tN/dt;
 lam1inst = [];
-res = zeros(1, tmax);
+% res = zeros(1, tmax);
 
 fprintf('\nCalculating coefficient matrices for implicit calcs...\n');
 [matdivpsi, matdivomz] = impMatGSH(p);
@@ -39,7 +39,7 @@ toc
 
 fprintf('\nCalculating dynamics and the 1st Pert Vector...\n');
 
-for t = 1:tmax
+for n = 1:tmax
     %------------------ zeta, iterative ------------------------
     zetamat = iterativeZetaOmz(omzmat,zetamat,p);
     [ulat,vlat] = uvzeta(zetamat,p);
@@ -61,16 +61,16 @@ for t = 1:tmax
 
     %------------------ explicit TS linear ----------------------
     dzeta1mat = iterativeZetaOmz(domz1mat,dzeta1mat,p);
-    [dpsi1mat, res(t)] = rk2tsgsh1(psimat,zetamat,dpsi1mat, ...
+    [dpsi1mat, res(n)] = rk2tsgsh1(psimat,zetamat,dpsi1mat, ...
                         dzeta1mat,p,@ts1exp,@sfdd);
     domz1mat = rk2tsgsh2(omzmat,psimat,domz1mat, ...
                         dpsi1mat,p,@ts2exp,@sfdd);
     fpv = [latToVec(dpsi1mat); latToVec(domz1mat)];
-    fpvmag(t+1) = norm(fpv);
+    fpvmag(n+1) = norm(fpv);
     
     %------------------ renormalization and LLE ----------------------
-    if rem(t,normtime) == 0
-        lam1inst = [lam1inst, (1/tnorm) * log(abs(norm(fpv)))];
+    if rem(n,nnorm) == 0
+        lam1inst = [lam1inst, (1/tN) * log(abs(norm(fpv)))];
         fpv = fpv./norm(fpv);
         dpsi1mat = vecToLat(fpv(1:N),Nx,Ny);
         domz1mat = vecToLat(fpv(N+1:2*N),Nx,Ny);
@@ -79,21 +79,21 @@ for t = 1:tmax
     dpsi1mat = vecToLat(fpv(1:N),Nx,Ny);
     domz1mat = vecToLat(fpv(N+1:2*N),Nx,Ny);
     
-    if rem(t,tmax/intervals) == 0
+    if rem(n,tmax/intervals) == 0
         %------------- saving dynamics at intervals ---------------
-        psi(:,:,round(t*intervals/tmax)) = psimat;
-        omz(:,:,round(t*intervals/tmax)) = omzmat;
-        zeta(:,:,round(t*intervals/tmax)) = zetamat;
-        u(:,:,round(t*intervals/tmax)) = ulat;
-        v(:,:,round(t*intervals/tmax)) = vlat;
+        psi(:,:,round(n*intervals/tmax)) = psimat;
+        omz(:,:,round(n*intervals/tmax)) = omzmat;
+        zeta(:,:,round(n*intervals/tmax)) = zetamat;
+        u(:,:,round(n*intervals/tmax)) = ulat;
+        v(:,:,round(n*intervals/tmax)) = vlat;
         %----------- saving TS dynamics at intervals --------------
-        dpsi1(:,:,round(t*intervals/tmax)) = dpsi1mat;
-        domz1(:,:,round(t*intervals/tmax)) = domz1mat;
-        dzeta1(:,:,round(t*intervals/tmax)) = dzeta1mat;
+        dpsi1(:,:,round(n*intervals/tmax)) = dpsi1mat;
+        domz1(:,:,round(n*intervals/tmax)) = domz1mat;
+        dzeta1(:,:,round(n*intervals/tmax)) = dzeta1mat;
     end
 
-    if rem(t,tmax/10) == 0
-        fprintf('This is time step %i, ',t);
+    if rem(n,tmax/10) == 0
+        fprintf('This is time step %i, ',n);
         toc
     end
     

@@ -12,7 +12,7 @@ altframes = 2;
     [X,Y] = meshgrid(1:p.Nx,1:p.Ny);
     figure();
     % hold on;
-    for t = 1:1:length(psi(1,1,:))-1
+    for t = 1:1000:length(psi(1,1,:))-1
         % imagesc(psilat(:,:,t));
         plot1 = contourf(psi(:,:,t),'levels',0.1, 'Linecolor', 'none');
         set(gca,'YDir','normal');
@@ -42,7 +42,7 @@ lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
 open(lat_dyn_video);
 figure();
 % hold on;
-for t = 1:500:length(psi(1,1,:))-1
+for t = 1:1000:length(psi(1,1,:))-1
     plot1 = contourf(abs(dpsi1(:,:,t)),'levels',0.001, 'Linecolor', 'none');
     hold on;
     plot2 = contourf(psi(:,:,t),'levels',1, 'Linecolor', 'black', ...
@@ -136,7 +136,7 @@ close(lat_dyn_video);
 % colorbar;
 % colormap jet;
 
-%% rolls with zeta
+%% psi rolls with zeta
 figure;
 contourf(psi(:,:,end-1),'levels',0.1, 'Linecolor', 'none');
 clim([-1 1]);
@@ -145,24 +145,26 @@ hold on;
 quiver(X,Y,v(:,:,end),u(:,:,end),2,'black');
 hold off;
 set(gca,'YDir','normal');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
 xlim([1 p.Nx]);
 ylim([4 p.Ny]);
 colorbar;
 colormap jet;
 title('\psi');
 
-%% rolls without zeta
+%% psi rolls without zeta
 figure;
 contourf(psi(:,:,end-1),'levels',0.1, 'Linecolor', 'none');
 clim([-1 1]);
 set(gca,'YDir','normal');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
 xlim([1 p.Nx]);
 ylim([4 p.Ny]);
 colorbar;
 colormap jet;
 title('\psi');
 
-%%
+%% only dpsi1
 figure;
 contourf(dpsi1(:,:,end-1),'levels',0.005, 'Linecolor', 'none');
 clim([-0.08 0.08]);
@@ -170,7 +172,7 @@ colormap jet;
 title('\delta\psi_1');
 colorbar;
 
-%%
+%% dpsi1 with rolls
 figure;
 contourf(abs(dpsi1(:,:,end-1)),'levels',0.001, 'Linecolor', 'none');
 hold on;
@@ -178,6 +180,7 @@ contourf(psi(:,:,end-1),'levels',1, 'Linecolor', 'black', ...
     'Facecolor', 'none', 'LineWidth', 2);
 hold off;
 set(gca,'YDir','normal');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
 clim([0 0.08]);
 xlim([1 p.Nx]);
 ylim([1 p.Ny]); 
@@ -185,27 +188,37 @@ colorbar;
 colormap jet;
 title('\psi and \delta\psi_1');
 
-%%
+%% omz
 figure;
 contourf(omz(:,:,end-1),'levels',0.1, 'Linecolor', 'none');
 clim([-1 1]);
 colormap jet;
 title('\Omega_z');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
 colorbar;
 
-%%
+%% domz1
 figure;
 contourf(abs(domz1(:,:,end-1)),'levels',0.005, 'Linecolor', 'none');
 clim([0 0.1]);
 colormap jet;
 title('\delta\Omega_{z,1}');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
 colorbar;
 
-%% 
+%% lambda_1 running sum
 figure;
 plot(cumsum(lam1inst)./(1:length(lam1inst)), '-o');
-xlabel('nmax/normtime');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
+xlabel('T/t_N');
 ylabel('\lambda_{1,i}');
+
+%% FPV magnitude
+figure; plot(fpvmag,'-o');
+xlim([1 length(fpvmag)]);
+xlabel('nmax');
+ylabel('$||\delta \vec{m}||$','Interpreter','latex');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
 
 %% zeta contour figure
 

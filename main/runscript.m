@@ -10,27 +10,27 @@ dfa = '/data'; % saved data folder address
 
 % key parameters
 eps = 0.7;
-sig = 2;
+sig = 1;
 csq = 0.1;
 gm = 50;
-lam_0 = 2*pi;
+lam_0 = 2*pi; % critical roll wavelength
 dx = lam_0/8;
 dy = dx;
 dt = 0.001;
-rolls = 20;
+rolls = 5;
 trtu = 100; % transient time units
 totu = 1000; % total time units
 seed = 4;
-normtime = 10;
+tN = 0.5; % renormalization time units
 intervals = 1000;
 
-p = paramgsh(eps,sig,csq,gm,dx,dy,dt,rolls,trtu,totu,normtime,seed,intervals);
+p = paramgsh(eps,sig,csq,gm,dx,dy,dt,rolls,trtu,totu,tN,seed,intervals);
 
 tic
 %% Dynamics + FPV captured at intervals
 p.fpvictype = -1;
 [psi, omz, zeta, u, v, dpsi1, domz1, dzeta1, ...
-                    fpv, fpvmag, lam1inst, lam1, res] = gshFpvExpAtIntervals(p);
+                    fpv, fpvmag, lam1inst, lam1, ~] = gshFpvExpAtIntervals(p);
 toc
 
 % %% Dynamics captured at intervals
