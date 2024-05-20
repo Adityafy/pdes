@@ -42,7 +42,7 @@ lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
 open(lat_dyn_video);
 figure();
 % hold on;
-for t = 1:1000:length(psi(1,1,:))-1
+for t = 1:1:length(psi(1,1,:))-1
     plot1 = contourf(abs(dpsi1(:,:,t)),'levels',0.001, 'Linecolor', 'none');
     hold on;
     plot2 = contourf(psi(:,:,t),'levels',1, 'Linecolor', 'black', ...
@@ -215,7 +215,7 @@ xlabel('T/t_N');
 ylabel('\lambda_{1,i}');
 
 %% FPV magnitude
-figure; plot(fpvmag,'-o');
+figure; plot(fpvmag,'-o',Marker='.');
 xlim([1 length(fpvmag)]);
 xlabel('nmax');
 ylabel('$||\delta \vec{m}||$','Interpreter','latex');
@@ -229,7 +229,6 @@ set(gca,'YDir','normal');
 colormap jet;
 colorbar;
 title('\zeta');
-
 
 %% zeta contour figure with rolls
 % timestep = tmax; % change this to desired time step (where spirals are seen)
@@ -246,4 +245,3 @@ title('\zeta');
 % p3 = contourf(psimat(:,:,timestep), 'levels', 1, 'Linecolor', 'black', ...
 %     'Linewidth', 3,'Facecolor', 'none');
 % hold off;
-
