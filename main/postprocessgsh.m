@@ -12,7 +12,7 @@ altframes = 2;
     [X,Y] = meshgrid(1:p.Nx,1:p.Ny);
     figure();
     % hold on;
-    for t = 1:1000:length(psi(1,1,:))-1
+    for t = 1:1:length(psi(1,1,:))-1
         % imagesc(psilat(:,:,t));
         plot1 = contourf(psi(:,:,t),'levels',0.1, 'Linecolor', 'none');
         set(gca,'YDir','normal');
@@ -138,7 +138,7 @@ close(lat_dyn_video);
 
 %% psi rolls with zeta
 figure;
-contourf(psi(:,:,end-1),'levels',0.1, 'Linecolor', 'none');
+contourf(psi(:,:,end),'levels',0.1, 'Linecolor', 'none');
 clim([-1 1]);
 hold on;
 [X,Y] = meshgrid(1:p.Nx,1:p.Ny);
@@ -154,7 +154,7 @@ title('\psi');
 
 %% psi rolls without zeta
 figure;
-contourf(psi(:,:,end-1),'levels',0.1, 'Linecolor', 'none');
+contourf(psi(:,:,end),'levels',0.1, 'Linecolor', 'none');
 clim([-1 1]);
 set(gca,'YDir','normal');
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
@@ -166,7 +166,7 @@ title('\psi');
 
 %% only dpsi1
 figure;
-contourf(dpsi1(:,:,end-1),'levels',0.005, 'Linecolor', 'none');
+contourf(dpsi1(:,:,end),'levels',0.005, 'Linecolor', 'none');
 clim([-0.08 0.08]);
 colormap jet;
 title('\delta\psi_1');
@@ -174,14 +174,14 @@ colorbar;
 
 %% dpsi1 with rolls
 figure;
-contourf(abs(dpsi1(:,:,end-1)),'levels',0.001, 'Linecolor', 'none');
+contourf(abs(dpsi1(:,:,end)),'levels',0.001, 'Linecolor', 'none');
 hold on;
-contourf(psi(:,:,end-1),'levels',1, 'Linecolor', 'black', ...
+contourf(psi(:,:,end),'levels',1, 'Linecolor', 'black', ...
     'Facecolor', 'none', 'LineWidth', 2);
 hold off;
 set(gca,'YDir','normal');
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
-clim([0 0.08]);
+clim([0 0.1]);
 xlim([1 p.Nx]);
 ylim([1 p.Ny]); 
 colorbar;
@@ -190,7 +190,7 @@ title('\psi and \delta\psi_1');
 
 %% omz
 figure;
-contourf(omz(:,:,end-1),'levels',0.1, 'Linecolor', 'none');
+contourf(omz(:,:,end),'levels',0.1, 'Linecolor', 'none');
 clim([-1 1]);
 colormap jet;
 title('\Omega_z');
@@ -199,7 +199,7 @@ colorbar;
 
 %% domz1
 figure;
-contourf(abs(domz1(:,:,end-1)),'levels',0.005, 'Linecolor', 'none');
+contourf(abs(domz1(:,:,end)),'levels',0.005, 'Linecolor', 'none');
 clim([0 0.1]);
 colormap jet;
 title('\delta\Omega_{z,1}');
@@ -210,6 +210,7 @@ colorbar;
 figure;
 plot(cumsum(lam1inst)./(1:length(lam1inst)), '-o');
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
+yline(0);
 xlabel('T/t_N');
 ylabel('\lambda_{1,i}');
 
