@@ -1,4 +1,4 @@
-function [matdivpsi, matdivomz] = impMatGSH(p)
+function [matdivpsi, matdivomz] = impMatGSH(p,h)
 % [matdivpsi, matdivomz] = impMatGSH(p)
 % Calculates coefficient matrices for implicit calculations in GSH
 % equations 1 and 2.
@@ -13,7 +13,7 @@ function [matdivpsi, matdivomz] = impMatGSH(p)
     Nx = p.Nx;
     Ny = p.Ny;
     N = Nx*Ny;
-    h = p.dt;
+    % h = p.dt;
     delta = p.dx;
     dx = p.dx;
     dy = p.dy;

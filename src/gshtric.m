@@ -1,16 +1,18 @@
-function [psimat, omzmat, zetamat, ulat, vlat] = gshtric(p)
-% [psimat, omzmat, zetamat] = gshtric(p)
+function [psitr, omztr, zetatr, utr, vtr] = gshtric(p)
+% [psitr, omztr, zetatr, utr, vtr] = gshtric(p)
 % The time integration function that yields psi, omega_z, zeta as matrices 
-% evolved from initial states through time amount of transient time given 
-% (trtimeu). These matrices serve as the initial conditions for time
-% evolution (totimeu evolution) of psi, omz, zeta that is suited for
-% tangent space calculations.
+% evolved from initial conditions through time amount of transient time given 
+% (trtimeu). The last time step (:,:,end) of these 3D matrices serve as the initial 
+% conditions for time evolution (totimeu evolution) of psi, omz, zeta 
+% that is suited for tangent space calculations.
 addpath('../src/');
 
-dt = p.dt; % time step size
+% run_type = 0;
+dt_tr = p.dt_tr; % time step size
 
 trtimeu = p.trtimeu;
-tmax = trtimeu/dt; % total time steps
+nmax = trtimeu/dt_tr; % total time steps
+TrIntervals = p.TrIntervals;
 
 Nx = p.Nx;
 Ny = p.Ny;
@@ -69,16 +71,16 @@ fprintf('\nCalculating coefficient matrices for implicit calcs...\n');
 toc
 
 fprintf('Running time integration...\n');
-for t = 1:tmax    
+for n = 1:nmax    
     %------------------ zeta, iterative ------------------------
     zetamat = iterativeZetaOmz(omzmat,zetamat,p);
     [ulat,vlat] = uvzeta(zetamat,p);
     
     %------------------ explicit nonlinear --------------------
-    psitilde = rk2gsh1(psimat,zetamat,p,@nlpgsh1); 
+    psitilde = rk2gsh1(psimat,zetamat,p,@nlpgsh1,dt_tr); 
     psitilde = latToVec(psitilde);
 
-    omztilde = rk2gsh2(omzmat,psimat,p,@nlpgsh2);
+    omztilde = rk2gsh2(omzmat,psimat,p,@nlpgsh2,dt_tr);
     omztilde = latToVec(omztilde);
     
     %------------------ implicit CN linear ----------------------
@@ -89,9 +91,17 @@ for t = 1:tmax
     psimat = vecToLat(psivec,Nx,Ny);
     omzmat = vecToLat(omzvec,Nx,Ny);
     
-    
-    if rem(t,tmax/10) == 0
-        fprintf('This is time step %i, ',t);
+    if rem(n,nmax/TrIntervals) == 0
+        %------------- saving dynamics at intervals ---------------
+        psitr(:,:,round(n*TrIntervals/nmax)) = psimat;
+        omztr(:,:,round(n*TrIntervals/nmax)) = omzmat;
+        zetatr(:,:,round(n*TrIntervals/nmax)) = zetamat;
+        utr(:,:,round(n*TrIntervals/nmax)) = ulat;
+        vtr(:,:,round(n*TrIntervals/nmax)) = vlat;
+    end
+
+    if rem(n,nmax/10) == 0
+        fprintf('This is time step %i, ',n);
         toc
     end
     

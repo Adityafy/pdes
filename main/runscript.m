@@ -1,4 +1,3 @@
-
 clear all;
 close all;
 addpath('../src/');
@@ -16,51 +15,31 @@ gm = 50;
 lam_0 = 2*pi; % critical roll wavelength
 dx = lam_0/8;
 dy = dx;
-dt = 0.001;
-rolls = 5;
-trtu = 100; % transient time units
-totu = 1000; % total time units
+dt_tr = 0.2;
+dt_fpv = 0.001;
+gamma = 10;
+trtu = 1000; % transient time units
+totu = 200; % total time units
 seed = 4;
-tN = 0.5; % renormalization time units
-intervals = 1000;
+tN = 2; % renormalization time units
 
-p = paramgsh(eps,sig,csq,gm,dx,dy,dt,rolls,trtu,totu,tN,seed,intervals);
+p = paramgsh(eps,sig,csq,gm,lam_0,dx,dy,dt_tr,dt_fpv, ...
+    gamma,trtu,totu,tN,seed);
+
+
 
 tic
-%% Dynamics + FPV captured at intervals
+%% Transients
+[psitr, omztr, zetatr, utr, vtr] = gshTrSemiImpAtIntervals(p);
+
+save(join(['dynonly' p.run_name '.mat']), '-v7.3');
+
+%% FPV calcs
 p.fpvictype = -1;
 [psi, omz, zeta, u, v, dpsi1, domz1, dzeta1, ...
-                    fpv, fpvmag, lam1inst, lam1, ~] = gshFpvExpAtIntervals(p);
-toc
+    fpv, fpvmag, lam1inst, lam1, res] ...
+        = gshFpvExpAtIntervals(p,psitr,omztr,zetatr);
 
-% %% Dynamics captured at intervals
-% p.fpvictype = -1;
-% tic
-% [psi, omz, zeta, ulat, vlat] = gshTimeIntgnAtIntervals(p,10);
-% toc
-% 
-% %% Dynamics
-% tic
-% [psi, omz, zeta, ulat, vlat] = gshTimeIntgn(p,@gshtric);
-% toc
-% 
-% %% First Perturbation Vector
-% p.fpvictype = -1;
-% [dpsi1, domz1, dzeta1, fpv, fpvmag, lam1inst, lam1, res1] = ...
-%     gshFpvExp(p,psi,omz,zeta,@rk2tsgsh1,@rk2tsgsh2,@gshfpvic);
-% toc
-% 
-% %% Second Perturbation Vector
-% p.fpvictype = -1;
-% [dpsi2, domz2, dzeta2, spv, spvmag, lam2inst, lam2, res2] = ...
-%     gshSpvExp(p,psi,omz,zeta,fpv,@rk2tsgsh1,@rk2tsgsh2,@gshfpvic);
-% toc
-% 
-% %% Third Perturbation Vector
-% p.fpvictype = -1;
-% [dpsi3, domz3, dzeta3, tpv, tpvmag, lam3inst, lam3, res3] = ...
-%         gshTpvExp(p,psi,omz,zeta,fpv,spv,@rk2tsgsh1,@rk2tsgsh2,@gshfpvic);
-% toc
 
 %% saving
 save(join([p.run_name '.mat']), '-v7.3');

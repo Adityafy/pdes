@@ -1,58 +1,32 @@
-function p = paramgsh(eps,sig,csq,gm,dx,dy,dt,rolls, ...
-    trtimeu,totimeu,tN,seed,intervals)
+function p = paramgsh(eps,sig,csq,gm,lam_0,dx,dy,dt_tr,dt_fpv,gamma, ...
+    trtimeu,totimeu,tN,seed)
 % p = paramgsh(eps,sig,csq,gm,dx,dy,dt,rolls,trtimeu,totimeu,seed)
 % lam_0 is 2*pi
 % dx or dy should be taken as 2*pi/k, k is an integer
 
 
-%----epsilon------
-% eps = 0.7;
-
-% ----mean flow----
-% sig = 2;
-% csq = 0.1; 
-% 
 c = sqrt(csq);
-% gm = 50;
-
-% ----no mean flow----
-% sig = 0;
-% c = 0;
-% gm = 0;
-
-% ----discretization----
-lam_0 = 2*pi; % critical wavelength
-% dx = lam_0/8; % node spacing
-% dy = dx;
-% delta = dx;
-
-% dt = 0.1; % time step size
-% h = dt;
-
-% timeUnits = 25;
-tmax = totimeu/dt; % total time steps
-
+totmax = totimeu/dt_fpv; % total time steps for dynamics after transient
 
 % ----domain size----
-% rolls = 5;
-Nx = round(rolls*lam_0/dx); % spatial nodes in x
-Ny = round(rolls*lam_0/dy); % spatial nodes in y
-% Nx = 5;
-% Ny = 5;
+% Nx = round(rolls*lam_0/dx); % spatial nodes in x
+% Ny = round(rolls*lam_0/dy); % spatial nodes in y
+Nx = round(0.5*gamma*lam_0/dx);
+Ny = round(0.5*gamma*lam_0/dy);
+
 N = Nx*Ny;
 
 gmPos = 2; % position of gm; 1 for eqn 1, 2 for eqn 2 (Karimi)
 gsiters = 5; % number of iterations for gauss seidel
 
 % ----random seed----
-% seed = 1;
 rng(seed,"twister");
 
 % ------- running filename ---------
-run_name = join([num2str(Nx) 'x' num2str(Ny) 'eps0-' num2str(round(100*eps)) ...
-            'sig' num2str(sig) 'csq0-' num2str(round(100*csq)) ...
-            'gm' num2str(gm) 'tN' num2str(tN) 'trt' num2str(trtimeu) ...
-            'tot' num2str(totimeu) 's' num2str(seed)]);
+run_name = join([num2str(Nx) 'x' num2str(Ny) 'eps' dashed(eps) ...
+            'sig' dashed(sig) 'csq' dashed(csq) ...
+            'gm' dashed(gm) 'tN' dashed(tN) 'trt' dashed(trtimeu) ...
+            'tot' dashed(totimeu) 's' dashed(seed)]);
 
 % ----video----
 altframes = 2;
@@ -70,20 +44,38 @@ Jp2 = circshift(J,-2);
 Jm2 = circshift(J,2);
 
 %-------- intervals ----------
-if tmax < intervals
-    error('Number of intervals is less than total time steps!');
-    fprintf('Total time steps = %g', p.tmax);
-    fprintf('Number of intervals = %g', p.intervals);
+% if totmax < intervals
+%     error('Number of intervals is less than total time steps!');
+%     fprintf('Total time steps = %g', p.tmax);
+%     fprintf('Number of intervals = %g', p.intervals);
+% end
+
+TrIntervals = floor(trtimeu);
+ToIntervals = floor(totimeu);
+if totimeu < 1
+    ToIntervals = 10;
 end
 
+
 % ----  (p)arameter (struct)ure ----
-p = struct('eps', eps, 'sig', sig, 'c', c, 'gm', gm, 'dt', dt, ...
-    'dx', dx, 'dy', dy, 'tmax', tmax, 'Nx', Nx, 'Ny', Ny, 'N',N, ...
-    'seed', seed, 'I', I, 'J', J, 'Ip1', Ip1, 'Im1', Im1,'Ip2', Ip2, ...
-    'Im2', Im2,'Jp1', Jp1,'Jm1', Jm1,'Jp2', Jp2,'Jm2', Jm2, ...
-    'gmPos', gmPos, 'run_name', run_name, 'lam_0', lam_0, ...
-    'trtimeu', trtimeu, 'totimeu', totimeu, 'tN', tN, ...
-    'rolls', rolls, 'intervals', intervals);
+p = struct('eps', eps, 'sig', sig, 'c', c, 'gm', gm, 'dt_tr', dt_tr, ...
+    'dt_fpv', dt_fpv, 'dx', dx, 'dy', dy, 'tmax', totmax, 'Nx', Nx, ...
+    'Ny', Ny, 'N',N, 'seed', seed, 'I', I, 'J', J, 'Ip1', Ip1, ...
+    'Im1', Im1,'Ip2', Ip2, 'Im2', Im2,'Jp1', Jp1,'Jm1', Jm1,'Jp2', Jp2, ...
+    'Jm2', Jm2, 'gmPos', gmPos, 'run_name', run_name, 'lam_0', lam_0, ...
+    'trtimeu', trtimeu, 'totimeu', totimeu, 'tN', tN, 'gamma', gamma, ...
+    'TrIntervals', TrIntervals,'ToIntervals',ToIntervals);
+
+    function outstr = dashed(parameter)
+        parastring = num2str(parameter);
+        if contains(parastring,'.')
+            strarr = split(parastring,'.');
+            outstr = join(strarr,'-');
+            outstr = char(outstr);
+        else
+            outstr = char(parastring);
+        end
+    end
 
 end
 

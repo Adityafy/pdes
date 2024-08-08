@@ -1,4 +1,37 @@
 
+%% Transient dynamics video
+
+altframes = 2;
+
+    dynvideoname = 'gshTrDyn';
+    dynVideoFilename = join([dynvideoname p.run_name]);
+    lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
+    %lat_dyn_video.FrameRate = 30;
+    open(lat_dyn_video);
+    [X,Y] = meshgrid(1:p.Nx,1:p.Ny);
+    figure();
+    
+    % hold on;
+    for t = 1:1:length(psitr(1,1,:))-1
+        % imagesc(psilat(:,:,t));
+        plot1 = contourf(psitr(:,:,t),'levels',0.1, 'Linecolor', 'none');
+        set(gca,'YDir','normal');
+        hold on;
+        % imagesc(zetalat(:,:,t));
+        colorbar;
+        colormap jet
+        clim([-0.8 0.8]);
+        plot2 = quiver(X,Y,vtr(:,:,t),utr(:,:,t),2,'black');
+        xlim([1 p.Nx]);
+        ylim([1 p.Ny]);
+        axis square;
+        frame = getframe(gcf);
+        writeVideo(lat_dyn_video,frame);
+        clear plot1 plot2;
+        hold off;
+    end
+    hold off;
+    close(lat_dyn_video);
 
 %% dynamics video
 
@@ -52,6 +85,36 @@ for t = 1:1:length(psi(1,1,:))-1
     hold off;
     set(gca,'YDir','normal');
     clim([0 0.1]);
+    xlim([1 p.Nx]);
+    ylim([1 p.Ny]);
+    axis square;
+    colorbar;
+    colormap jet;
+    frame = getframe(gcf);
+    writeVideo(lat_dyn_video,frame);
+    clear plot1 plot2;
+    hold off;
+end
+hold off;
+close(lat_dyn_video);
+
+%% dpsi1 video with rolls
+altframes = 2;
+dynvideoname = 'gshrollFPVDynfr10_';
+dynVideoFilename = join([dynvideoname p.run_name]);
+lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
+lat_dyn_video.FrameRate = 10;
+open(lat_dyn_video);
+figure();
+% hold on;
+for t = 1:1:length(psi(1,1,:))-1
+    plot1 = contourf(abs(dpsi1(:,:,t)),'levels',0.001, 'Linecolor', 'none');
+    hold on;
+    plot2 = contourf(psi(:,:,t),'levels',1, 'Linecolor', 'black', ...
+        'Facecolor', 'none', 'LineWidth', 2);
+    hold off;
+    set(gca,'YDir','normal');
+    clim([0 0.07]);
     xlim([1 p.Nx]);
     ylim([1 p.Ny]);
     axis square;
@@ -165,7 +228,7 @@ clim([-1 1]);
 set(gca,'YDir','normal');
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
 xlim([1 p.Nx]);
-ylim([4 p.Ny]);
+ylim([1 p.Ny]);
 axis square;
 colorbar;
 colormap jet;
@@ -219,11 +282,15 @@ colorbar;
 
 %% lambda_1 running sum
 figure;
-plot(cumsum(lam1inst)./(1:length(lam1inst)), '-o');
+normtime = linspace(1,p.totimeu,round(p.totimeu/p.tN));
+lam1runsum = cumsum(lam1inst)./(1:length(lam1inst));
+plot(normtime,lam1runsum,'-o','LineWidth',1);
+% plot(cumsum(lam1inst)./(1:length(lam1inst)), '-o');
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
+xlim([1 normtime(end)]);
 yline(0);
 axis square;
-xlabel('T/t_N');
+xlabel('t');
 ylabel('\lambda_{1,i}');
 
 %% FPV magnitude
