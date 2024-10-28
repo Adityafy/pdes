@@ -1,4 +1,14 @@
 
+addpath('../../../pdes/src/');
+mfm = zeros(p.Nx,p.Ny,p.totimeu);
+for t = 1:1:length(psi(1,1,:))
+    mfm(:,:,t) = sqrt(u(:,:,t).^2+v(:,:,t).^2);
+    mfsum(t) = sum(sum(mfm(:,:,t)))/(p.Nx*p.Ny);
+end
+meanflowavg = sum(mfsum)/p.totimeu;
+threshold = 1;
+
+
 %% Transient dynamics video
 
 altframes = 2;
@@ -6,7 +16,7 @@ altframes = 2;
     dynvideoname = 'gshTrDyn';
     dynVideoFilename = join([dynvideoname p.run_name]);
     lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
-    %lat_dyn_video.FrameRate = 30;
+    lat_dyn_video.FrameRate = 30;
     open(lat_dyn_video);
     [X,Y] = meshgrid(1:p.Nx,1:p.Ny);
     figure();
@@ -49,6 +59,8 @@ altframes = 2;
     for t = 1:1:length(psi(1,1,:))-1
         % imagesc(psilat(:,:,t));
         plot1 = contourf(psi(:,:,t),'levels',0.1, 'Linecolor', 'none');
+        % plot2 = contourf(psi(:,:,t),'levels',1, 'Linecolor', 'black', ...
+        % 'Facecolor', 'none', 'LineWidth', 1.5);
         set(gca,'YDir','normal');
         hold on;
         % imagesc(zetalat(:,:,t));
@@ -67,6 +79,47 @@ altframes = 2;
     hold off;
     close(lat_dyn_video);
 
+%% mean flow strength with rolls
+
+altframes = 2;
+
+    dynvideoname = 'mfs';
+    dynVideoFilename = join([dynvideoname p.run_name]);
+    lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
+    %lat_dyn_video.FrameRate = 30;
+    open(lat_dyn_video);
+    [X,Y] = meshgrid(1:p.Nx,1:p.Ny);
+    mfm = zeros(p.Nx,p.Ny,p.totimeu);
+    for t = 1:1:length(psi(1,1,:))-1
+        mfm(:,:,t) = sqrt(u(:,:,t).^2+v(:,:,t).^2);
+    end
+
+    figure();
+    
+    % hold on;
+    for t = 1:1:length(psi(1,1,:))-1
+        % mfm = sqrt(u(:,:,t).^2+v(:,:,t).^2);
+        plot1 = contourf(mfm(:,:,t),'levels',0.05,'Linecolor','none');
+        hold on;
+        plot2 = contourf(psi(:,:,t),'levels',1, 'Linecolor', 'black', ...
+                'Facecolor', 'none', 'LineWidth', 1.5);
+        plot3 = quiver(X,Y,v(:,:,t),u(:,:,t),2,'black');
+        
+        colorbar;
+        clim([-0.5 3]);
+        colormap jet
+        xlim([1 p.Nx]);
+        ylim([1 p.Ny]);
+        axis square;
+
+        frame = getframe(gcf);
+        writeVideo(lat_dyn_video,frame);
+
+        clear plot1 plot2;
+        hold off;
+    end
+    hold off;
+    close(lat_dyn_video);
 
 %% dpsi1 video with rolls
 altframes = 2;
@@ -97,6 +150,58 @@ for t = 1:1:length(psi(1,1,:))-1
 end
 hold off;
 close(lat_dyn_video);
+
+%% video of subplot = mean flow strength + first perturbation vector
+[X,Y] = meshgrid(1:p.Nx,1:p.Ny);
+mfm = zeros(p.Nx,p.Ny,p.totimeu);
+for t = 1:1:length(psi(1,1,:))
+    mfm(:,:,t) = sqrt(u(:,:,t).^2+v(:,:,t).^2);
+end
+
+specificvidfilename = 'mfsfpv';
+vidfilename = join([specificvidfilename p.run_name]);
+video = VideoWriter(vidfilename, 'MPEG-4');
+video.FrameRate = 10;
+video.Quality = 100;
+open(video);
+
+vidfig = figure;
+% set(gcf, 'Position',  [100, 100, 500, 400]);
+for t = 1:1:length(psi(1,1,:))
+    subplot(1,2,1);
+    plot1 = contourf(mfm(:,:,t),'levels',0.05,'Linecolor','none');
+    hold on;
+    plot2 = contourf(psi(:,:,t),'levels',1, 'Linecolor', 'black', ...
+        'Facecolor', 'none', 'LineWidth', 1);
+    plot3 = quiver(X,Y,v(:,:,t),u(:,:,t),2,'black');
+    colorbar;
+    clim([0 2]);
+    colormap jet
+    xlim([1 p.Nx]);
+    ylim([1 p.Ny]);
+    axis square;
+    hold off
+
+    subplot(1,2,2);
+    plot4 = contourf(abs(dpsi1(:,:,t)),'levels',0.001, 'Linecolor', 'none');
+    hold on;
+    plot5 = contourf(psi(:,:,t),'levels',1, 'Linecolor', 'black', ...
+        'Facecolor', 'none', 'LineWidth', 1);
+
+    set(gca,'YDir','normal');
+    clim([0 0.06]);
+    xlim([1 p.Nx]);
+    ylim([1 p.Ny]);
+    axis square;
+    colorbar;
+    colormap jet;
+    hold off;
+    
+    frame = getframe(gcf);
+    writeVideo(video,frame);
+    clear plot1 plot2 plot3 plot4 plot5;
+end
+close(video);
 
 %% dpsi1 video with rolls
 altframes = 2;
@@ -217,7 +322,52 @@ set(gca,'TickLabelInterpreter','tex','FontSize',15);
 xlim([1 p.Nx]);
 ylim([4 p.Ny]);
 axis square;
+% axis off;
+% set(gca,'YTickLabel',[]);
+% set(gca,'XTickLabel',[]);
 colorbar;
+colormap jet;
+title('\psi');
+
+%% psi rolls with zeta and mean flow magnitude
+figure;
+hold on;
+mfm = sqrt(u(:,:,end).^2+v(:,:,end).^2); % mean flow magnitude
+contourf(mfm,'levels',0.05,'Linecolor','none');
+contourf(psi(:,:,end),'levels',1, 'Linecolor', 'black', ...
+    'Facecolor', 'none', 'LineWidth', 1);
+[X,Y] = meshgrid(1:p.Nx,1:p.Ny);
+quiver(X,Y,v(:,:,end),u(:,:,end),2,'black');
+
+hold off;
+set(gca,'YDir','normal');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
+xlim([1 p.Nx]);
+ylim([4 p.Ny]);
+axis square;
+colorbar;
+colormap jet;
+title('\psi');
+
+
+%% doublepsi
+figure;
+hold on;
+% mfm = sqrt(u(:,:,end).^2+v(:,:,end).^2); % mean flow magnitude
+contourf(psi(:,:,end),'levels',0.05,'Linecolor','none');
+contourf(psi(:,:,end),'levels',1, 'Linecolor', 'black', ...
+    'Facecolor', 'none', 'LineWidth', 1);
+% [X,Y] = meshgrid(1:p.Nx,1:p.Ny);
+% quiver(X,Y,v(:,:,end),u(:,:,end),2,'black');
+
+hold off;
+set(gca,'YDir','normal');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
+xlim([1 p.Nx]);
+ylim([4 p.Ny]);
+axis square;
+colorbar;
+clim([-1 1]);
 colormap jet;
 title('\psi');
 
@@ -280,18 +430,96 @@ title('\delta\Omega_{z,1}');
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
 colorbar;
 
-%% lambda_1 running sum
-figure;
-normtime = linspace(1,p.totimeu,round(p.totimeu/p.tN));
-lam1runsum = cumsum(lam1inst)./(1:length(lam1inst));
-plot(normtime,lam1runsum,'-o','LineWidth',1);
+%% lambda_1 cummulative average (lam1ca)
+lam1cafig = figure;
+axlam1fig = axes('Parent',lam1cafig);
+hold(axlam1fig,'on');
+
+time = linspace(1,p.totimeu,floor(p.totimeu/p.tN));
+lam1ca = cumsum(lam1inst)./(1:length(lam1inst));
+plot(time,lam1ca,'MarkerSize',10,'Marker','.','LineWidth',1);
 % plot(cumsum(lam1inst)./(1:length(lam1inst)), '-o');
-set(gca,'TickLabelInterpreter','tex','FontSize',15);
-xlim([1 normtime(end)]);
-yline(0);
-axis square;
-xlabel('t');
-ylabel('\lambda_{1,i}');
+xlim([1 time(end)]);
+yline(0,'Parent',axlam1fig);
+
+box(axlam1fig,'on');
+axis(axlam1fig,'square');
+hold(axlam1fig,'off');
+set(axlam1fig,'FontSize',15,'LineWidth',1,'XMinorTick','on','YMinorTick','on');
+ylabel('$\left<\lambda_{1}(t)\right>$','FontSize',30,'Interpreter','latex','Rotation',0);
+xlabel('$t$','FontSize',30,'Interpreter','latex');
+
+%% Fit: 'lam1 cummulative average fit'.
+time = linspace(1,p.totimeu,floor(p.totimeu/p.tN));
+lam1ca = cumsum(lam1inst)./(1:length(lam1inst));
+fprintf('lambda_1 : %.4f\n\n',lam1);
+[xData, yData] = prepareCurveData( time, lam1ca );
+
+fiteqn = 'a+b/x';
+initExcludeXDataPoints = 50;
+
+% Set up fittype and options.
+ft = fittype( fiteqn, 'independent', 'x', 'dependent', 'y' );
+excludedPoints = xData < initExcludeXDataPoints;
+opts = fitoptions( 'Method', 'NonlinearLeastSquares' );
+opts.Display = 'Off';
+opts.StartPoint = [0.1 -1];
+opts.Exclude = excludedPoints;
+
+% Fit model to data.
+[fitresult, gof] = fit( xData, yData, ft, opts );
+fprintf('Fitresult:\n');
+disp(fitresult);
+    
+% Plot fit with data.
+figure;
+hold on;
+h = plot( fitresult,'b-', xData, yData,'k.', excludedPoints, 'r*');
+ylim([-max(abs(yData)) max(abs(yData))]);
+xlim([xData(1) xData(end)]);
+xaxis = yline(0);
+set(h,'LineWidth',1,'MarkerSize',6);
+fitname = join(['(' num2str(fitresult.a) ') + (' num2str(fitresult.b) ')/t']);
+excludeLegend = join(['Initial points excluded: ' num2str(initExcludeXDataPoints)]);
+legend( h, '$\left<\lambda_{1}(t)\right>_t/t$', excludeLegend, ...
+    fitname, 'Location', 'SouthEast', 'Interpreter', 'latex' );
+% Label axes
+set(gca,'TickLabelInterpreter','tex','FontSize',15,'LineWidth',1,'XMinorTick','on','YMinorTick','on');
+ylabel('$\left<\lambda_{1}(t)\right>_t/t$','FontSize',30,'Interpreter','latex','Rotation',90);
+% ylabel('$(\sum_{i=0}^t\lambda_{1,\,i})/t$','FontSize',30,'Interpreter','latex','Rotation',0);
+xlabel('$t$','FontSize',30,'Interpreter','latex');
+box on; axis square;
+
+%% Mean flow: maximum and threshold
+maxmfst = zeros(1,p.totimeu);
+mfm = zeros(p.Nx,p.Ny,p.totimeu);
+threshold = 0.75;
+mfthreshold = zeros(p.Nx,p.Ny,p.totimeu);
+highmfratio = zeros(1,p.totimeu);
+for t = 1:1:length(u(1,1,:))
+    mfm(:,:,t) = sqrt(u(:,:,t).^2+v(:,:,t).^2);
+    % mfs = sqrt(u(:,:,t).^2+v(:,:,t).^2);
+    maxmfst(t) = max(max(mfm(:,:,t)));
+    mfthreshold = mfm(:,:,t)>threshold;
+    highmfratio(t) = sum(sum(mfthreshold))/(p.Nx*p.Ny);
+end
+maxmfs = mean(maxmfst);
+highmfratioavg = mean(highmfratio);
+
+diary meanflowresults;
+diary on;
+fprintf(p.run_name);
+fprintf('\n');
+fprintf('\n Maximum mean flow magnitude: %.4f \n', maxmfs);
+fprintf(['\n Time averaged percentage' ...
+    ' of high mean flow: %.4f, (threshold: %g) \n'], highmfratioavg,threshold);
+diary off;
+
+%% High mean flow and FPV
+figure;
+imagesc(mfm(:,:,end));
+figure;
+imagesc(dpsdi1)
 
 %% FPV magnitude
 figure; plot(fpvmag,'-o',Marker='.');
