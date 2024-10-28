@@ -7,24 +7,27 @@ addpath('../src/');
 mfa = '/media'; % media folder address
 dfa = '/data'; % saved data folder address
 
-r = 0.3; % control parameter
+r = 0.2; % control parameter
 
 lam_0 = 2*pi; % critical wavelength
 
-dt = 0.2; % time step size
+dt = 0.01; % time step size
 % dx = 0.99;
-dx = lam_0/8; % node spacing
+dx = lam_0/16; % node spacing
 
-tmax = 10^2/dt; % total time steps
+totimeu = 2000;
+nmax = totimeu/dt; % total time steps
 
-rolls = 4;
-N = round(rolls*lam_0/dx); % spatial nodes
-% N = 30;
+% rolls = 32;
+% N = round(rolls*lam_0/dx); % spatial nodes
 
+N = 256;
+
+%%
 seed = 2;
 rng(seed,"twister");
 
-para = [r dt dx tmax N];
+para = [r dt dx nmax N];
 
 u = zeros(N,1); % scalar field
 u(:,1) = 0.01*rand(N,1);
@@ -76,40 +79,67 @@ end
 matdiv = inv(cfmat_lhs)*cfmat_rhs;
 
 %% Time integration
-for t = 1:tmax
-    ustar = rk2(u(:,t),@nonlinPart,dt); % explicit nonlinear
+for n = 1:nmax
+    ustar = rk2(u(:,n),@nonlinPart,dt); % explicit nonlinear
     %ustar2 = matdiv*ustar;
-    u(:,t+1) = matdiv*ustar; % implicit cn linear
-    if rem(t,tmax/10) == 0
-        fprintf('This is time step %i, ',t);
+    u(:,n+1) = matdiv*ustar; % implicit cn linear
+    if rem(n,nmax/10) == 0
+        fprintf('This is time step %i, ',n);
         toc
     end
 end
 toc
 
+%%
 figure;
 imagesc(u');
 set(gca,'YDir','normal');
 colorbar;
 colormap jet;
 
-figure;
-contourf(u');
-set(gca,'YDir','normal');
-colorbar;
-colormap jet;
 
-figure;
-imagesc(u(:,1:50)');
-set(gca,'YDir','normal');
-colorbar;
-colormap jet;
+%%
+% x = linspace(0,dx*(N),N);
+% u_solution = sqrt(4*r/3)*cos(x) + (((sqrt(4/3))^3 * cos(3*x))./(4*(r-64)));
+x = 0:dx:dx*N;
 
+A1 = sqrt(4*r/3);
+% A3 = -A1/4 + sqrt(A1^2/16 + r*A1/3 + -A1^3/4);
+A3 = 0.14*A1*r;
+A5 = 0.05*A3*r;
+u_solution = A1*cos(x) + A3*cos(3*x) + A5*cos(5*x);
+% N = 30;
 figure;
-imagesc(u(:,end-500:end)');
-set(gca,'YDir','normal');
-colorbar;
-colormap jet;
+plot(u(:,end),'-o', 'DisplayName','finite difference solution');
+hold on;
+plot(u_solution,'DisplayName','analytical'); legend;
+
+%%
+% figure;
+% contourf(u');
+% set(gca,'YDir','normal');
+% colorbar;
+% colormap jet;
+% 
+% figure;
+% imagesc(u(:,1:50)');
+% set(gca,'YDir','normal');
+% colorbar;
+% colormap jet;
+% 
+% figure;
+% imagesc(u(:,end-500:end)');
+% set(gca,'YDir','normal');
+% colorbar;
+% colormap jet;
+
+%% Is it steady state?
+figure;
+plot(u(25,:),'-o','DisplayName','u_1(t)');
+xlabel('t');
+ylabel('u_1');
+subtitle('Is the solution steady state?');
+xlim([1 length(u(1,:))]);
 
 %% Functions
 function Nu = nonlinPart(u)
