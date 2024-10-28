@@ -10,25 +10,23 @@ dfa = '/data'; % saved data folder address
 % key parameters
 eps = 0.7;
 sig = 1;
-csq = 0.1;
-gm = 50;
+csq = 1;
+gm = 35;
 lam_0 = 2*pi; % critical roll wavelength
 dx = lam_0/8;
 dy = dx;
 dt_tr = 0.2;
 dt_fpv = 0.001;
-gamma = 10;
-trtu = 1000; % transient time units
-totu = 200; % total time units
+gamma = 15;
+trtu = 2000; % transient time units
+totu = 250; % total time units
 seed = 4;
 tN = 2; % renormalization time units
 
 p = paramgsh(eps,sig,csq,gm,lam_0,dx,dy,dt_tr,dt_fpv, ...
     gamma,trtu,totu,tN,seed);
 
-
-
-tic
+tic;
 %% Transients
 [psitr, omztr, zetatr, utr, vtr] = gshTrSemiImpAtIntervals(p);
 
@@ -41,8 +39,8 @@ p.fpvictype = -1;
         = gshFpvExpAtIntervals(p,psitr,omztr,zetatr);
 
 
-%% saving
-save(join([p.run_name '.mat']), '-v7.3');
-
+% saving
+save(join(['FPV' p.run_name '.mat']), '-v7.3');
+nan
 %%
 % run('postprocessgsh.m');
