@@ -30,7 +30,7 @@ x = spatial_res*2*pi*(1:N)'/N;
 
 %% TIME
 dt = 0.2; % time step size
-totimeu = 2500;
+totimeu = 100;
 nmax = totimeu/dt; % total time steps
 
 %% INITIAL CONDITIONS
@@ -44,7 +44,8 @@ rng(seed,"twister");
 u = zeros(size(x));
 u(:,1) = 0.01*rand(size(u));
 
-v = fft(u); % initializing Fourier space variable
+% -----In Fourier space----
+v = fft(u(:,1)); % initializing Fourier space variable
 
 
 %% Analytical solution
@@ -87,7 +88,6 @@ L = r - 1 + 2*k_vec.^2 - k_vec.^4; % Fourier multipliers
 
 
 %% ETD explicit
-v = fft(u(:,1));
 tic
 uetd1exp = etd1exp_sh1D(v,dt,nmax,L);
 
@@ -105,7 +105,7 @@ figure;
 imagesc(uetd1exp');
 colormap jet; colorbar;
 set(gca,'YDir','normal');
-
+axis square;
 
 figure; plot(uetd1exp(1,:),'-o','LineWidth',1);
 
@@ -130,59 +130,21 @@ u = zeros(size(real(ifft(v))));
 for n = 1:nmax
     % predictor1
     v_pred = v; % initial guess for predictor step
+    % v_pred = fft(real(ifft(rand(size(u(:,1))))));
     for i = 1
         v_pred = fft(real(ifft(v))).*exp(L*dt) ...
                     + 0.5*dt*fft(real(-(ifft(v_pred)).^3)) ...
-                       + 0.5*dt*exp(L*dt).*fft(real(-(ifft(v_pred)).^3));
+                       + 0.5*dt*exp(L*dt).*fft(real(-(ifft(v)).^3));
     end
     % corrector (final step for u_{n+1})
     v = fft(real(ifft(v))).*exp(L*dt) + 0.5*dt*fft(real(-(ifft(v_pred)).^3)) + ...
-                        0.5*dt*exp(L*dt).*fft(real(-(ifft(v_pred)).^3));
+                        0.5*dt*exp(L*dt).*fft(real(-(ifft(v)).^3));
     u(:,n+1) = real(ifft(v));
     if rem(n,round(nmax/10)) == 0
         
         fprintf('This is time step: %g / %g, ', n, nmax);
         toc;
     end
-end
-
-end
-
-%% ETD RK4 function
-function u = etdrk4(p,u,Lfunc,Nfunc)
-% u = etdCoxMatthewsRK4(p,u)
-
-h = p.dt;
-m = p.m;
-nmax = p.nmax;
-t = p.time;
-
-% precomputing some
-L = Lfunc(p);
-N = Nfunc;
-
-E1 = expm(L*h);
-E2 = expm(L*h/2);
-% E1 = exp(L*h);
-% E2 = exp(L*h/2);
-% omega = inv(L) * (E2-eye(m));
-omega = L \ (E2-eye(m));
-
-eta = h^(-2) * L^(-3);
-alpha = eta * (- 4 - L*h + E1 * (4 - 3*L*h + (L*h)^2));
-beta = eta * (2 + L*h + E1 * (-2+L*h));
-gamma = eta * (-4 - 3*L*h - (L*h)^2 + E1 * (4 - L*h));
-
-% time integration
-for n = 1:nmax
-    an = E2 * u(:,n) + omega * N(u(:,n),t(n));
-    bn = E2 * u(:,n) + omega * N(an,t(n)+h/2);
-    cn = E2 * an + omega * ( 2 * N(bn,t(n)+h/2) - N(u(:,n),t(n)) );
-
-    u(:,n+1) =  E1 * u(:,n) + alpha * N(u(:,n), t(n)) ...
-        + beta * 2 * ( N(an, t(n)+h/2) + N(bn, t(n)+h/2) ) ...
-        + gamma * N(cn, t(n)+h) ;
-
 end
 
 end
