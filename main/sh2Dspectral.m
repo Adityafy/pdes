@@ -32,7 +32,7 @@ y = spatial_res*2*pi*(1:Ny)'/Ny;
 
 %% TIME
 dt = 0.2; % time step size
-totimeu = 50;
+totimeu = 100;
 nmax = totimeu/dt; % total time steps
 ToIntervals = totimeu;
 
@@ -54,20 +54,18 @@ uvec = latToVec(u);
 v = fft(uvec);
 
 %% WAVENUMBER vector
-kx = [0:Nx/2-1 0 -Nx/2+1:-1]'/spatial_res; % wave numbers in x
-ky = [0:Ny/2-1 0 -Ny/2+1:-1]'/spatial_res; % wave numbers in y
-% kx = [0:(Nx/2-1) (-Nx/2):-1]'/spatial_res; % wave numbers in x
-% kx(1) = 10^(-6);
-% ky = [0:(Ny/2-1) (-Ny/2):-1]'/spatial_res; % wave numbers in y
-% ky(1) = 10^(-6);
+kx = (1/spatial_res)*(-Nx/2:Nx/2-1)';
+ky = (1/spatial_res)*(-Ny/2:Ny/2-1)';
+kx = fftshift(kx);
+ky = fftshift(ky);
+
 [Kx,Ky] = meshgrid(kx,ky);
 
-% the linear operator matrix after the fourier transform
+%% Linear derivative operator in the Fourier domain
 L = -Kx.^4 - 2*(Kx.^2).*(Ky.^2) - Ky.^4 + 2*Kx.^2 + 2*Ky.^2 + r - 1;
 
 
 %% ETD explicit
-% v = fft(u(:,1));
 tic
 u = etd1exp_sh2D(u,v,dt,nmax,L,ToIntervals,Nx,Ny);
 
@@ -75,15 +73,30 @@ u = etd1exp_sh2D(u,v,dt,nmax,L,ToIntervals,Nx,Ny);
 figure; imagesc(u(:,:,end)); colormap jet; colorbar;
 set(gca,'YDir','normal'); axis square;
 
-%% wavenumber
-% figure; hold on;
-% plot(latToVec(Kx),real(fft(latToVec(u(:,:,end)))),'-o','LineWidth',1);
-% % xlim([min(k_vec) max(k_vec)]);
-% set(gca,'TickLabelInterpreter','tex','FontSize',15);
-% axis square;
-% box("on");
-% xlabel('$k$','Interpreter','latex','FontSize',30);
-% ylabel('$\hat{u}_{ss}$','Interpreter','latex','FontSize',30);
+
+%% wavenumber figure;
+figure;
+npad = 1000; % # of trailing zeros u is to be padded with
+             % for fft calculation
+f = spatial_res * ((-npad/2):(npad/2-1))/npad;
+f = fftshift(f);
+[X,Y] = meshgrid(f,f);
+runsumYset = zeros(size(fft2(u(:,:,end),npad,npad)));
+starttimestep = totimeu - round(3*totimeu/4);
+endtimestep = totimeu;
+for i = starttimestep:endtimestep
+    Yset = fft2(u(:,:,i),npad,npad);
+    runsumYset = runsumYset + Yset;
+end
+Yse = runsumYset./(endtimestep-starttimestep);
+Yse = abs(Yse/sqrt(npad*npad)).^2;
+contourf(X,Y,Yse,'LevelStep',1,'EdgeColor','none');
+colorbar; colormap jet;
+axis square;
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
+box("on");
+xlabel('$k_x$','Interpreter','latex','FontSize',30);
+ylabel('$k_y$','Interpreter','latex','FontSize',30);
 
 %% functions
 

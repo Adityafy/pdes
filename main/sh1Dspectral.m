@@ -11,7 +11,7 @@ mfa = '../../pdesDataDump/media/'; % media folder address
 dfa = '../../pdesDataDump/data/'; % saved data folder address
 
 %% Parameters
-r = 0.2; % control parameter
+r = 0.1; % control parameter
 lam_0 = 2*pi; % critical wavelength
 
 %% SPACE
@@ -30,7 +30,7 @@ x = spatial_res*2*pi*(1:N)'/N;
 
 %% TIME
 dt = 0.2; % time step size
-totimeu = 100;
+totimeu = 2000;
 nmax = totimeu/dt; % total time steps
 
 %% INITIAL CONDITIONS
@@ -60,7 +60,10 @@ u_solution = A1*cos(x) + A3*cos(3*x);
 
 %% WAVENUMBER vector
 % k_vec = [0:N/2-1 0 -N/2+1:-1]'/32; % wave numbers 
-k_vec = [0:N/2-1 0 -N/2+1:-1]'/spatial_res; % wave numbers 
+% k_vec = [0:N/2-1 0 -N/2+1:-1]'/spatial_res; % wave numbers 
+k_vec = (1/spatial_res)*(-N/2:N/2-1)';
+k_vec = fftshift(k_vec);
+% k_vec = [0:N/2-1 0 -N/2+1:-1]'; % wave numbers 
 % k_vec = [-N/2:-1 0 1:N/2-1]'/spatial_res; % wave numbers
 L = r - 1 + 2*k_vec.^2 - k_vec.^4; % Fourier multipliers
 
@@ -111,13 +114,46 @@ figure; plot(uetd1exp(1,:),'-o','LineWidth',1);
 
 %% wavenumber
 figure; hold on;
-plot(k_vec,real(fft(uetd1exp(:,end))),'-o','LineWidth',1);
+plot(k_vec,abs(fft(uetd1exp(:,end))),'-o','LineWidth',1);
 xlim([min(k_vec) max(k_vec)]);
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
 axis square;
 box("on");
 xlabel('$k$','Interpreter','latex','FontSize',30);
 ylabel('$\hat{u}_{ss}$','Interpreter','latex','FontSize',30);
+
+%%
+figure; hold on;
+
+npad = 10000; % # of trailing zeros u is to be padded with 
+             % for fft calculation
+Y = fft(u(:,end),npad);
+P = abs(Y/sqrt(npad)).^2;
+f = spatial_res * ((-npad/2):(npad/2-1))/npad;
+f = fftshift(f);
+% plot(f,P(1:npad/2+1),'-o');
+plot(f,abs(Y),'-o');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
+axis square;
+box("on");
+xlabel('$k$','Interpreter','latex','FontSize',30);
+ylabel('$|\hat{u}|$','Interpreter','latex','FontSize',30);
+
+%% figure;
+figure;
+npad = 10000; % # of trailing zeros u is to be padded with
+% for fft calculation
+f = spatial_res * ((-npad/2):(npad/2-1))/npad;
+f = fftshift(f);
+Yse = fft(u(:,end),npad);
+Yse = abs(Yse/sqrt(npad)).^2;
+plot(f,Yse,'-s','DisplayName','Spectral');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
+axis square;
+box("on");
+xlabel('$k$','Interpreter','latex','FontSize',30);
+ylabel('$|\hat{u}|$','Interpreter','latex','FontSize',30);
+legend;
 
 %% functions
 

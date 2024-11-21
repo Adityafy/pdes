@@ -7,13 +7,15 @@ addpath('../src/');
 mfa = '/media'; % media folder address
 dfa = '/data'; % saved data folder address
 
-r = 0.2; % control parameter
+r = 0.1; % control parameter
 
 lam_0 = 2*pi; % critical wavelength
 
 dt = 0.01; % time step size
 % dx = 0.99;
-dx = lam_0/16; % node spacing
+spatial_res = 16;
+dx = lam_0/spatial_res; % node spacing
+
 
 totimeu = 2000;
 nmax = totimeu/dt; % total time steps
@@ -22,6 +24,7 @@ nmax = totimeu/dt; % total time steps
 % N = round(rolls*lam_0/dx); % spatial nodes
 
 N = 256;
+k_vec = [0:N/2-1 0 -N/2+1:-1]'/spatial_res; % wave numbers 
 
 %%
 seed = 2;
@@ -79,12 +82,12 @@ end
 matdiv = inv(cfmat_lhs)*cfmat_rhs;
 
 %% Time integration
-for n = 1:nmax
-    ustar = rk2(u(:,n),@nonlinPart,dt); % explicit nonlinear
+for npad = 1:nmax
+    ustar = rk2(u(:,npad),@nonlinPart,dt); % explicit nonlinear
     %ustar2 = matdiv*ustar;
-    u(:,n+1) = matdiv*ustar; % implicit cn linear
-    if rem(n,nmax/10) == 0
-        fprintf('This is time step %i, ',n);
+    u(:,npad+1) = matdiv*ustar; % implicit cn linear
+    if rem(npad,nmax/10) == 0
+        fprintf('This is time step %i, ',npad);
         toc
     end
 end
@@ -140,6 +143,21 @@ xlabel('t');
 ylabel('u_1');
 subtitle('Is the solution steady state?');
 xlim([1 length(u(1,:))]);
+
+%% wavenumber
+figure; hold on;
+
+npad = 10000; % # of trailing zeros u is to be padded with 
+             % for fft calculation
+Y = fft(u(:,end),npad);
+P = abs(Y/sqrt(npad)).^2;
+f = spatial_res * (0:(npad/2))/npad;
+plot(f,P(1:npad/2+1),'-o');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
+axis square;
+box("on");
+xlabel('$k$','Interpreter','latex','FontSize',30);
+ylabel('$|\hat{u}|$','Interpreter','latex','FontSize',30);
 
 %% Functions
 function Nu = nonlinPart(u)
