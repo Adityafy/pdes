@@ -143,6 +143,50 @@ altframes = 2;
     end
     hold off;
     close(lat_dyn_video);
+%% plot : mean flow magnitude with rolls
+[X,Y] = meshgrid(1:p.Nx,1:p.Ny);
+mfm = zeros(p.Nx,p.Ny,p.totimeu);
+for t = 1:1:length(psi(1,1,:))-1
+    mfm(:,:,t) = sqrt(u(:,:,t).^2+v(:,:,t).^2);
+end
+
+figure;
+attime = 45;
+plot1 = contourf(mfm(:,:,attime),'levels',0.05,'Linecolor','none');
+hold on;
+plot2 = contourf(psi(:,:,attime),'levels',1, 'Linecolor', 'black', ...
+    'Facecolor', 'none', 'LineWidth', 1.5);
+plot3 = quiver(X,Y,v(:,:,attime),u(:,:,attime),2,'black');
+set(gca,'YDir','normal');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
+set(gca,'YTickLabel',[],'XTickLabel',[]);
+colorbar;
+clim([0 3]);
+colormap jet
+xlim([1 p.Nx]);
+ylim([1 p.Ny]);
+axis square;
+% subtitle '(a)';
+hold off;
+
+figure;
+plot4 = contourf(abs(dpsi1(:,:,attime)),'levels',0.001, 'Linecolor', 'none');
+hold on;
+plot5 = contourf(psi(:,:,attime),'levels',1, 'Linecolor', 'black', ...
+    'Facecolor', 'none', 'LineWidth', 1.5);
+
+set(gca,'YDir','normal');
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
+set(gca,'YTickLabel',[],'XTickLabel',[]);
+clim([0 0.05]);
+xlim([1 p.Nx]);
+ylim([1 p.Ny]);
+axis square;
+colorbar(gca,'Ticks',[0 0.05]);
+colormap parula;
+% colormap(colmap);
+% subtitle '(b)';
+hold off;
 
 %% dpsi1 video with rolls
 addpath('~/Documents/pdes/src/othercolor/');
@@ -459,7 +503,7 @@ contourf(psi(:,:,end),'levels',1, 'Linecolor', 'black', ...
 hold off;
 set(gca,'YDir','normal');
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
-clim([0 0.1]);
+clim([0 0.05]);
 xlim([1 p.Nx]);
 ylim([1 p.Ny]); 
 axis square;
