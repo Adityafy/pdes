@@ -1,36 +1,33 @@
-%% Test script for Swift-Hohenberg 1D with Spectral
-% using various time-integration solvers. Particularly ETD.
-% First order Euler works.
-% ETD1 explicit (predictor corrector) also works.
+%% Swift-Hohenberg 1D with Pseudospectral and ETD
+% Now works with different L (domain) and N (grid points)
+% using various time-integration solvers:
+% First order Euler. ETD1 explicit (predictor corrector).
 % SHE in 1D is: u_t = (r-1)u - 2u_xx - u_xxxx - u^3.
 
 clear all;
+close all;
+
 addpath('../src/');
 
 mfa = '../../pdesDataDump/media/'; % media folder address
 dfa = '../../pdesDataDump/data/'; % saved data folder address
 
 %% Parameters
-r = 0.1; % control parameter
+r = 0.05; % control parameter
 lam_0 = 2*pi; % critical wavelength
 
 %% SPACE
-% I saw that spatial resolution of 16 works best in the follwing setting.
-spatial_res = 16;
+Lx = 12; % length of the square domain
+Nx = 96; % number of grid points
 
-dx = lam_0/spatial_res; % node spacing
-% num_rolls = 16;
-% N = round(num_rolls*spatial_res);
-
-N = spatial_res^2;
-% x = 32*2*pi*(1:N)'/N;
-
-x = spatial_res*2*pi*(1:N)'/N;
-% x = spatial_res*2*pi*([-N/2:-1 0 1:N/2-1])'/N;
+% ---------  spatial grid in real domain -----------
+x2 = linspace(-Lx/2,Lx/2,Nx+1)';
+x = x2(1:Nx);
+dx = x(2) - x(1);
 
 %% TIME
 dt = 0.2; % time step size
-totimeu = 2000;
+totimeu = 500;
 nmax = totimeu/dt; % total time steps
 
 %% INITIAL CONDITIONS
@@ -44,28 +41,18 @@ rng(seed,"twister");
 u = zeros(size(x));
 u(:,1) = 0.01*rand(size(u));
 
-% -----In Fourier space----
-v = fft(u(:,1)); % initializing Fourier space variable
-
-
 %% Analytical solution
-x = linspace(0,dx*(N),N);
-% u_solution = sqrt(4*r/3)*cos(x) + (((sqrt(4/3))^3 * cos(3*x))./(4*(r-64)));
 A1 = sqrt(4*r/3);
 % A3 = -A1/4 + sqrt(A1^2/16 + r*A1/3 + -A1^3/4);
 A3 = r^(3/2);
 A5 = r^(5/2);
 u_solution = A1*cos(x) + A3*cos(3*x);
-% N = 30;
+
 
 %% WAVENUMBER vector
-% k_vec = [0:N/2-1 0 -N/2+1:-1]'/32; % wave numbers 
-% k_vec = [0:N/2-1 0 -N/2+1:-1]'/spatial_res; % wave numbers 
-k_vec = (1/spatial_res)*(-N/2:N/2-1)';
-k_vec = fftshift(k_vec);
-% k_vec = [0:N/2-1 0 -N/2+1:-1]'; % wave numbers 
-% k_vec = [-N/2:-1 0 1:N/2-1]'/spatial_res; % wave numbers
-L = r - 1 + 2*k_vec.^2 - k_vec.^4; % Fourier multipliers
+kx = (2*pi/Lx)*(-Nx/2:Nx/2-1)'; % wavenumber grid
+kx = fftshift(kx);
+L = r - 1 + 2*kx.^2 - kx.^4; % Fourier multipliers
 
 %% First order Euler
 % tic
@@ -82,7 +69,7 @@ L = r - 1 + 2*k_vec.^2 - k_vec.^4; % Fourier multipliers
 % toc
 
 
-%% Space time dynamics figure
+% % Space time dynamics figure
 % figure;
 % % contourf(u','LevelStep',0.1,'EdgeColor','none'); 
 % imagesc(u');
@@ -91,69 +78,31 @@ L = r - 1 + 2*k_vec.^2 - k_vec.^4; % Fourier multipliers
 
 
 %% ETD explicit
+v = fft(u(:,1));
 tic
 uetd1exp = etd1exp_sh1D(v,dt,nmax,L);
-
-%% figures
-% figure;
-% plot(u(:,end),'-','DisplayName','FOE');
-% hold on;
-% plot(uetd1exp(:,end),'s','DisplayName','ETD1exp');
-% legend;
-% hold off;
-
 
 figure;
 % contourf(u','LevelStep',0.1,'EdgeColor','none'); 
 imagesc(uetd1exp');
 colormap jet; colorbar;
 set(gca,'YDir','normal');
-axis square;
 
+%% 
 figure; plot(uetd1exp(1,:),'-o','LineWidth',1);
+xlabel('$n$','FontSize',30,'Interpreter','latex');
+ylabel('$u^{(1)}$','FontSize',30,'Interpreter','latex','Rotation',0);
 
 %% wavenumber
-figure; hold on;
-plot(k_vec,abs(fft(uetd1exp(:,end))),'-o','LineWidth',1);
-xlim([min(k_vec) max(k_vec)]);
-set(gca,'TickLabelInterpreter','tex','FontSize',15);
-axis square;
-box("on");
-xlabel('$k$','Interpreter','latex','FontSize',30);
-ylabel('$\hat{u}_{ss}$','Interpreter','latex','FontSize',30);
-
-%%
-figure; hold on;
-
-npad = 10000; % # of trailing zeros u is to be padded with 
-             % for fft calculation
-Y = fft(u(:,end),npad);
-P = abs(Y/sqrt(npad)).^2;
-f = spatial_res * ((-npad/2):(npad/2-1))/npad;
-f = fftshift(f);
-% plot(f,P(1:npad/2+1),'-o');
-plot(f,abs(Y),'-o');
-set(gca,'TickLabelInterpreter','tex','FontSize',15);
-axis square;
-box("on");
-xlabel('$k$','Interpreter','latex','FontSize',30);
-ylabel('$|\hat{u}|$','Interpreter','latex','FontSize',30);
-
-%% figure;
 figure;
-npad = 10000; % # of trailing zeros u is to be padded with
-% for fft calculation
-f = spatial_res * ((-npad/2):(npad/2-1))/npad;
-f = fftshift(f);
-Yse = fft(u(:,end),npad);
-Yse = abs(Yse/sqrt(npad)).^2;
-plot(f,Yse,'-s','DisplayName','Spectral');
+ufftreal = real(fft(uetd1exp(:,end)));
+plot(kx,ufftreal,'-o','LineWidth',1);
+xlim([min(kx) max(kx)]);
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
 axis square;
 box("on");
 xlabel('$k$','Interpreter','latex','FontSize',30);
-ylabel('$|\hat{u}|$','Interpreter','latex','FontSize',30);
-legend;
+ylabel('$\hat{u}_{ss}$','Interpreter','latex','FontSize',30,'Rotation',0);
 
 %% functions
 
@@ -181,6 +130,45 @@ for n = 1:nmax
         fprintf('This is time step: %g / %g, ', n, nmax);
         toc;
     end
+end
+
+end
+
+%% ETD RK4 function
+function u = etdrk4(p,u,Lfunc,Nfunc)
+% u = etdCoxMatthewsRK4(p,u)
+
+h = p.dt;
+m = p.m;
+nmax = p.nmax;
+t = p.time;
+
+% precomputing some
+L = Lfunc(p);
+N = Nfunc;
+
+E1 = expm(L*h);
+E2 = expm(L*h/2);
+% E1 = exp(L*h);
+% E2 = exp(L*h/2);
+% omega = inv(L) * (E2-eye(m));
+omega = L \ (E2-eye(m));
+
+eta = h^(-2) * L^(-3);
+alpha = eta * (- 4 - L*h + E1 * (4 - 3*L*h + (L*h)^2));
+beta = eta * (2 + L*h + E1 * (-2+L*h));
+gamma = eta * (-4 - 3*L*h - (L*h)^2 + E1 * (4 - L*h));
+
+% time integration
+for n = 1:nmax
+    an = E2 * u(:,n) + omega * N(u(:,n),t(n));
+    bn = E2 * u(:,n) + omega * N(an,t(n)+h/2);
+    cn = E2 * an + omega * ( 2 * N(bn,t(n)+h/2) - N(u(:,n),t(n)) );
+
+    u(:,n+1) =  E1 * u(:,n) + alpha * N(u(:,n), t(n)) ...
+        + beta * 2 * ( N(an, t(n)+h/2) + N(bn, t(n)+h/2) ) ...
+        + gamma * N(cn, t(n)+h) ;
+
 end
 
 end
