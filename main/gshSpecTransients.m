@@ -70,9 +70,14 @@ TrIntervals = floor(trtu);
 run_name = join(['psetdL' num2str(ceil(Lx)) 'N' num2str(Nx) 'eps' pointToDashed(epsilon) ...
             'sig' pointToDashed(sig) 'csq' pointToDashed(csq) ...
             'gm' pointToDashed(gm) 'trt' pointToDashed(trtu) ...
-            'fr' pointToDashed(frgamma) 's' pointToDashed(seed)]);
+            's' pointToDashed(seed)]);
 
 fprintf(join(['Running transients ' run_name ' ...\n']));
+
+
+p = paraGshPS(epsilon,sig,csq,gm,lam_0,Lx,Nx,x,y,X,Y,kx,ky,Kx,Ky, ...
+                        L1,L2,dx,dy,dt_tr,trtu,nmax_tr,seed,frgamma, ...
+                        TrIntervals,run_name);
 
 %% INITIAL CONDITIONS
 % make sure zeta (zetatrmat) initialization is not too high (max < 0.1) or
@@ -257,6 +262,12 @@ for n = 1:nmax_tr
     % % subplot(1,3,3); imagesc(zetatrmat); colorbar; axis square;
     drawnow;
 end
+
+psi_icForTS = psitr(:,:,end);
+omz_icForTS = omztr(:,:,end);
+zeta_icForTs = zetatr(:,:,end);
+u_icForTS = utr(:,:,end);
+v_icForTs = vtr(:,:,end);
 
 %%
 figure; hold on;

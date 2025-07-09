@@ -9,33 +9,33 @@ dfa = '../../pdesDataDump/data/'; % saved data folder address
 
 dt_tr = 0.1;
 % dt_ts = 0.1;
-dt_ts = 1e-6;
+dt_ts = 1e-5;
 trtu = 2000; % transient time units
-tstu = 2; % tangent space time units
+tstu = 10; % tangent space time units
 seed = 4;
 tN = 0.5; % renormalization time units
-nnorm = tN/dt_ts;
-
-Nx = 64;
+nnorm = round(tN/dt_ts);
 
 nmax_tr = trtu/dt_tr;
-nmax_ts = tstu/dt_ts;
+nmax_ts = round(tstu/dt_ts);
 
 % ---------  spatial grid in real domain -----------
-x2 = (pi)*linspace(-Nx/2,Nx/2,Nx+1)';
+Lx = 64; % length of the square domain
+Nx = 128; % number of grid points
+
+% ---------  spatial grid in real domain -----------
+x2 = linspace(-Lx/2,Lx/2,Nx+1)';
 x = x2(1:Nx);
-% x = 32*pi*(1:Nx)'/Nx;
 dx = x(2) - x(1);
 
 % wavenumber grid
-kx = (2*pi/Nx)*(-Nx/2:Nx/2-1)';
-% kx = [0:Nx/2-1 0 -Nx/2+1:-1]'/16;
+kx = (2*pi/Lx)*(-Nx/2:Nx/2-1)'; % wavenumber grid
 kx = fftshift(kx);
 
 alpha = kx.^2 - kx.^4;
 
 % -----periodic ICs-----
-utr = cos(x/16).*(1+sin(x/16)); 
+utr = cos(x); 
 nn = 0;
 
 % -----random ICs-----
@@ -63,7 +63,7 @@ for n = 1:nmax_tr
                     + 0.5 * dt_tr * expalphadt .* N1hat(utrhat,kx);
     
     utr(:,n+1) = real(ifft(utrhat));
-    nn = [nn n];
+
     if rem(n,round(nmax_tr/10)) == 0
         fprintf('This is time step: %g / %g, ', n, nmax_tr);
         toc;
@@ -80,12 +80,6 @@ colormap jet; colorbar;
 clim([-4 4]);
 set(gca,"YDir","normal");
 
-%%
-% figure;
-% surf(nn,x,utr), shading interp, lighting phong, axis tight 
-% view([-90 90]), colormap(autumn); set(gca,'zlim',[-5 50]) 
-% light('color',[1 1 0],'position',[-1,2,2]) 
-% material([0.30 0.60 0.60 40.00 1.00]);
 
 %% Tangent space
 
@@ -110,7 +104,7 @@ dH = du; % initializing perturbation vectors
 
 laminst = zeros(nv,1); % lambda(k) instantaneous
 dHmag = zeros(nv,nmax_ts); % magnitude of the perturbation vectors
-dH1 = zeros(Nx,nmax_ts/nnorm);
+dH1 = zeros(Nx,round(nmax_ts/nnorm));
 
 tic
 for n = 1:nmax_ts
@@ -180,7 +174,7 @@ figure; loglog(dHmag(1,:), '-o');
 figure; hold on;
 for k = 1:nv
     plot(cumsum(laminst(k,:))./(1:length(laminst(k,:))), ...
-        '-o', 'DisplayName', join(['\lambda' num2str(k)]));
+        '-o', 'DisplayName', join(['\lambda_' num2str(k)]));
 end
 legend;
 % yline(mean(laminst(1,:)));
@@ -197,12 +191,16 @@ colormap jet; colorbar;
 set(gca,"YDir","normal");
 
 %%
-figure;
-nnts = 1:nmax_ts;
-surf(nnts(nnorm:nnorm:end-1),x,du1(:,nnorm:nnorm:end-1)), shading interp, lighting phong, axis tight 
-view([-90 90]), colormap(autumn); set(gca,'zlim',[-5 5]) 
-light('color',[1 1 0],'position',[-1,2,2]) 
-material([0.30 0.60 0.60 40.00 1.00]);
+figure; 
+subplot(1,2,1);
+imagesc(u'); colormap jet; colorbar;
+set(gca,"YDir","normal");
+subplot(1,2,2);
+imagesc(abs(du1'));
+clim([0 0.1])
+colormap jet; colorbar;
+set(gca,"YDir","normal");
+
 
 %%
 function N1h = N1hat(uhat,kx)

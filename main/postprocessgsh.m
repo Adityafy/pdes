@@ -12,7 +12,7 @@ altframes = 2;
     lat_dyn_video.FrameRate = 30;
     open(lat_dyn_video);
     [X,Y] = meshgrid(1:p.Nx,1:p.Ny);
-    figure();
+    figure('units','pixels','position',[0 0 1440 1080]);
     
     % hold on;
     for t = 1:1:length(psitr(1,1,:))-1
@@ -35,6 +35,38 @@ altframes = 2;
     end
     hold off;
     close(lat_dyn_video);
+
+%% Dynamics video (when no p present)
+
+dynvideoname = 'gshDyn';
+dynVideoFilename = join([dynvideoname run_name]);
+lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
+lat_dyn_video.FrameRate = 30;
+open(lat_dyn_video);
+[X,Y] = meshgrid(1:Nx,1:Ny);
+figure('units','pixels','position',[0 0 1440 1080]);
+
+% hold on;
+for t = 1:1:length(psi(1,1,:))-1
+    % imagesc(psilat(:,:,t));
+    plot1 = contourf(psi(:,:,t),'levels',0.1, 'Linecolor', 'none');
+    set(gca,'YDir','normal');
+    hold on;
+    % imagesc(zetalat(:,:,t));
+    colorbar;
+    colormap jet
+    clim([-0.8 0.8]);
+    plot2 = quiver(X,Y,u(:,:,t),v(:,:,t),2,'black');
+    xlim([1 Nx]);
+    ylim([1 Ny]);
+    axis square;
+    frame = getframe(gcf);
+    writeVideo(lat_dyn_video,frame);
+    clear plot1 plot2;
+    hold off;
+end
+hold off;
+close(lat_dyn_video);
 
 %% dynamics video with mean flow vector arrows
 
@@ -151,7 +183,7 @@ for t = 1:1:length(psi(1,1,:))-1
 end
 
 figure;
-attime = 45;
+attime = 955;
 plot1 = contourf(mfm(:,:,attime),'levels',0.05,'Linecolor','none');
 hold on;
 plot2 = contourf(psi(:,:,attime),'levels',1, 'Linecolor', 'black', ...
@@ -161,7 +193,7 @@ set(gca,'YDir','normal');
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
 set(gca,'YTickLabel',[],'XTickLabel',[]);
 colorbar;
-clim([0 3]);
+clim([0 2]);
 colormap jet
 xlim([1 p.Nx]);
 ylim([1 p.Ny]);
@@ -420,6 +452,7 @@ quiver(X,Y,v(:,:,end),u(:,:,end),2,'black');
 hold off;
 set(gca,'YDir','normal');
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
+set(gca,'YTickLabel',[],'XTickLabel',[]);
 xlim([1 p.Nx]);
 ylim([4 p.Ny]);
 axis square;
@@ -474,16 +507,18 @@ title('\psi');
 
 %% psi rolls without zeta
 figure;
-contourf(psi(:,:,end),'levels',0.1, 'Linecolor', 'none');
+contourf(psi(:,:,955),'levels',0.1, 'Linecolor', 'none');
 clim([-1 1]);
 set(gca,'YDir','normal');
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
+set(gca,'YTickLabel',[],'XTickLabel',[]);
 xlim([1 p.Nx]);
 ylim([1 p.Ny]);
 axis square;
 colorbar;
+colorbar(gca,'Ticks',[-1 1]);
 colormap jet;
-title('\psi');
+% title('\psi');
 
 %% only dpsi1
 figure;

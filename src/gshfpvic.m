@@ -6,14 +6,14 @@ Ny = p.Ny;
 N = p.N;
 
 dpsi1 = zeros(Nx,Ny);
-
 domz1 = zeros(Nx,Ny); 
+randrange = 0.05;
 
 if p.fpvictype < 0 % this is default
     % dpsi1(1,1,1) = 0.001;
-    dpsi1 = -0.05 + (0.05-(-0.05)) * rand(Nx,Ny);
+    dpsi1 = -randrange + (randrange-(-randrange)) * rand(Nx,Ny);
     rng(p.seed+2,"twister"); % setting different IC for omz
-    domz1 = -0.05 + (0.05-(-0.05)) * rand(Nx,Ny);
+    domz1 = -randrange + (randrange-(-randrange)) * rand(Nx,Ny);
     rng(p.seed, "twister"); % putting back default seed
     fpv = [latToVec(dpsi1(:,:,1)); latToVec(domz1(:,:,1))];
     fpv(:,1) = fpv(:,1)./ norm(fpv(:,1));
