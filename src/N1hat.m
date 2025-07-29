@@ -1,8 +1,8 @@
-function N1h = N1hat(psih,zetah,qx,qy)
-% N1h = N1hat(psih,zetah,qx,qy)
-% yields the fft of the nonlinear part of gsh equation 1
-% for the pseudospectral solve
-    N1h = -fft(real((ifft(psih)).^3)) ...
-            - fft(real( ifft(1i*qy.*zetah) .* ifft(1i*qx.*psih) )) ...
-                + fft(real( ifft(1i*qx.*zetah) .* ifft(1i*qy.*psih) ));
+function N1h = N1hat(p,psihmat,zetahmat)
+% function for the nonlinear part of equation 1
+    Kx = p.smesh.Kx;
+    Ky = p.smesh.Ky;
+    N1h = -fft2(real((ifft2(psihmat)).^3)) ...
+            - fft2(real( ifft2(1i*Ky.*zetahmat) .* ifft2(1i*Kx.*psihmat) )) ...
+                + fft2(real( ifft2(1i*Kx.*zetahmat) .* ifft2(1i*Ky.*psihmat) ));
 end

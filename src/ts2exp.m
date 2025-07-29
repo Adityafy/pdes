@@ -3,15 +3,15 @@ function domzrhs = ts2exp(~,psi,domz,dpsi,p,sfddfunc)
 % Calculates the RHS of the second tangent space equation for GSH
 % calculations, via the explicit time marching methods. 
 % Dependent on the spatial finite difference derivative.
-    Nx = p.Nx;
-    Ny = p.Ny;
+    Nx = p.rmesh.Nx;
+    Ny = p.rmesh.Ny;
     
-    sig = p.sig;
-    c = p.c;
-    gm = p.gm;
+    sig = p.con.sig;
+    c = p.con.c;
+    gm = p.con.gm;
 
-    I = p.I;
-    J = p.J;
+    I = p.idx.I;
+    J = p.idx.J;
 
     domzrhs = zeros(Nx,Ny);
     for i = 1:length(I)

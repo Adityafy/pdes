@@ -8,6 +8,7 @@ N = p.N;
 dpsi1 = zeros(Nx,Ny);
 domz1 = zeros(Nx,Ny); 
 randrange = 0.05;
+rng(p.seed,"twister");
 
 if p.fpvictype < 0 % this is default
     % dpsi1(1,1,1) = 0.001;

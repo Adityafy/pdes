@@ -3,13 +3,13 @@ function dpsirhs = ts1exp(psi,zeta,dpsi,dzeta,p,sfddfunc)
 % Calculates the RHS of the first tangent space equation for GSH
 % calculations, via the explicit time marching methods. 
 % Dependent on the spatial finite difference derivative.
-    Nx = p.Nx;
-    Ny = p.Ny;
+    Nx = p.rmesh.Nx;
+    Ny = p.rmesh.Ny;
 
-    eps = p.eps;
+    eps = p.con.epsilon;
 
-    I = p.I;
-    J = p.J;
+    I = p.idx.I;
+    J = p.idx.J;
 
     dpsirhs = zeros(Nx,Ny);
     for i = 1:length(I)
