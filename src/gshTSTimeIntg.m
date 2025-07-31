@@ -15,6 +15,13 @@ end
 [psimat,psi,omzmat,omz,zetamat,zeta] = dynICafterTr(dynICAddress);
 [dpsimat, dpsihmat, domzmat, domzhmat, ...
                     dzetamat, dH, laminst, dHmag] = tsics(p);
+
+fprintf('Initial ||dH(:,1)|| = %.4e\n', norm(dH(:,1)));
+% figure;
+% imagesc(dpsimat(:,:,1)); title('Initial \delta\psi_n^{(1)}'); 
+% colormap jet; colorbar; axis square; drawnow;
+% 
+% figure;
 % [psimat,psi,omzmat,omz,zetamat,zeta,u,v] = ICfunc(p,p.sim.dynICtype);
 for n = 1:nmax
     %================== saving dynamics at intervals ==================
@@ -55,16 +62,23 @@ for n = 1:nmax
         % end
         % --------- renormalization and LLE ----------
         if rem(n,nnorm) == 0
+            %----just using one vector
+            % dH(:,1) = dH(:,1) / norm(dH(:,1));
+            % laminst(1,round(n/nnorm)) = (1/tN) * log(norm(dH(:,1)));
+            
+            %----using multiple vectors
             [Q,R]= qr(dH,'econ','vector');
             dH = Q(:,1:nv);
             dH1(:,round(n/nnorm)) = dH(:,1);
-            % laminst(:,n/nnorm) = (1/tN) * log(abs(diag(R)));
             for k = 1:nv
                 laminst(k,round(n/nnorm)) = (1/tN)*log(abs(R(k,k)));
             end
+
             for k = 1:nv
                 dpsimat(:,:,k) = reshape(dH(1:N,k),Nx,Ny)';
                 domzmat(:,:,k) = reshape(dH(N+1:2*N,k),Nx,Ny)';
+                % dpsimat(:,:,k) = vecToLat(dH(1:N,k),Nx,Ny);
+                % domzmat(:,:,k) = vecToLat(dH(N+1:2*N,k),Nx,Ny);
                 dpsihmat(:,:,k) = fft2(dpsimat(:,:,k));
                 domzhmat(:,:,k) = fft2(domzmat(:,:,k));
                 dHmagn(k,1) = norm(dH(:,k));
@@ -112,7 +126,7 @@ for n = 1:nmax
 end
 
 for k = 1:nv
-    lamgs = (1/(p.sim.tu/p.ts.tN))*sum(laminst(k,:));
+    lamgs(k,1) = (1/(p.sim.tu/p.ts.tN))*sum(laminst(k,:));
 end
 
 end

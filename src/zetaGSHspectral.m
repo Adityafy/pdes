@@ -12,4 +12,5 @@ zetamat2h(1,1) = 0+1i*0;
 % zetamat2h(Nx,Ny) = 0+1i*0;
 zetahmat = fft2(real(ifft2(zetamat2h)));
 zetamat = real(ifft2(zetahmat));
+% imagesc(zetamat); colorbar; axis square;
 end

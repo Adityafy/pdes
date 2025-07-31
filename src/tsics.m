@@ -7,7 +7,7 @@ Kx = p.smesh.Kx;
 Ky = p.smesh.Ky;
 N = p.rmesh.N;
 nmax = p.sim.nmax;
-
+dHmag = zeros(nv,nmax); % magnitude of the perturbation vectors
 % same as fpv fd si
 rng(p.sim.seed,"twister");
 randrange = 0.05;
@@ -18,7 +18,7 @@ for k = 1:nv
     rng(p.sim.seed+2+k,"twister"); % setting different IC for omz
     domzmat(:,:,k) = -randrange + (randrange-(-randrange)) * rand(Nx,Ny);
     domzmat(:,:,k) = domzmat(:,:,k)./norm(domzmat(:,:,k));
-    dzetamat(:,:,1) = zetaGSHspectral(p,domzmat(:,:,k));
+    dzetamat(:,:,k) = zetaGSHspectral(p,domzmat(:,:,k));
 end
 rng(p.sim.seed,"twister");
 
@@ -45,12 +45,14 @@ for k = 1:nv
     % domzvec(:,k) = latToVec(domzmat(:,:,k));
     dH(:,k,1) = [reshape(dpsimat(:,:,k)',[],1); ...
                  reshape(domzmat(:,:,k)',[],1)];
+    dH(:,k,1) = dH./norm(dH(:,k,1));
     % dHhat(:,k,1)= [reshape(dpsihmat(:,:,k)',[],1); ...
     %              reshape(domzhmat(:,:,k)',[],1)];
+    dHmag(k,1) = norm(dH(:,k,1));
 end
 % dH(:,:,1) = [dpsivec; domzvec]; % initializing perturbation vectors
 
 laminst = zeros(nv,1); % lambda(k) instantaneous
 
-dHmag = zeros(nv,nmax); % magnitude of the perturbation vectors
+
 end

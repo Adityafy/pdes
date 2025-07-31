@@ -4,19 +4,16 @@ Kx = p.smesh.Kx;
 Ky = p.smesh.Ky;
 Kdiff = p.Kdiff;
 frgamma = p.sim.frgamma;
-frgamma =1;
+frgamma = 1;
 
-% psihmat = fft2(psimat);
-% dpsihmat = fft2(dpsimat);
-% omzhmat = fft2(omzmat);
-% domzhmat = fft2(domzmat);
-% zetahmat = omzhmat./Kdiff;
-% zetahmat(1,1) = 0;
-% dzetahmat = domzhmat./Kdiff;
-% dzetahmat(1,1) = 0;
+omzmat = real(ifft2(omzhmat));
+domzmat = real(ifft2(domzhmat));
 
-zetahmat = zetaGSHspectral(p,omzhmat);
-dzetahmat = zetaGSHspectral(p,domzhmat);
+zetamat = zetaGSHspectral(p,omzmat);
+zetahmat = fft2(zetamat);
+
+dzetamat = zetaGSHspectral(p,domzmat);
+dzetahmat = fft2(dzetamat);
 
 term1 = -3*(ifft2(psihmat).^2) .* ifft2(dpsihmat);
 unfiltered2 = - ifft2(1i*Ky.*zetahmat) .* ifft2(1i*Kx.*dpsihmat)  ...
