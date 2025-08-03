@@ -220,6 +220,153 @@ colormap parula;
 % subtitle '(b)';
 hold off;
 
+%% NEW dpsi1 video with rolls 
+N = p.rmesh.N;
+Nx = p.rmesh.Nx;
+Ny = p.rmesh.Ny;
+for n = 1:length(pertvecs(1,1,:))
+    dpsi1(:,:,n) = reshape(pertvecs(1:N,1,n),Nx,Ny)';
+end
+dynvideoname = 'dH1';
+dynVideoFilename = join([dynvideoname p.dyn_run_name]);
+lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
+lat_dyn_video.Quality = 100;
+%lat_dyn_video.FrameRate = 30;
+open(lat_dyn_video);
+figure;
+
+% hold on;
+for t = 1:1:length(psi(1,1,:))
+    plot1 = contourf(abs(dpsi1(:,:,t)),'levels',0.001, 'Linecolor', 'none');
+    hold on;
+    plot2 = contourf(psi(:,:,t),'levels',1, 'Linecolor', 'black', ...
+        'Facecolor', 'none', 'LineWidth', 2);
+    hold off;
+    set(gca,'YDir','normal');
+    set(gca,'YTickLabel',[],'XTickLabel',[]);
+    clim([0 0.1]);
+    xlim([1 p.rmesh.Nx]);
+    ylim([1 p.rmesh.Ny]);
+    axis square;
+    colorbar;
+    colormap jet;
+    % colorbar(gca,'Ticks',[-0.005 0.05],'TickLabels',[0 0.05]);
+    colorbar(gca,'Ticks',[0 0.1]);
+    frame = getframe(gcf);
+    writeVideo(lat_dyn_video,frame);
+    clear plot1 plot2;
+    hold off;
+end
+hold off;
+close(lat_dyn_video);
+
+%% NEW dpsi1,2,3 video with rolls 
+N = p.rmesh.N;
+Nx = p.rmesh.Nx;
+Ny = p.rmesh.Ny;
+% for n = 1:length(pertvecs(1,1,:))
+%     dpsi1(:,:,n) = reshape(pertvecs(1:N,1,n),Nx,Ny)';
+%     dpsi2(:,:,n) = reshape(pertvecs(1:N,2,n),Nx,Ny)';
+%     dpsi3(:,:,n) = reshape(pertvecs(1:N,3,n),Nx,Ny)';
+% end
+dynvideoname = 'dH123';
+dynVideoFilename = join([dynvideoname p.dyn_run_name]);
+lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
+lat_dyn_video.Quality = 100;
+%lat_dyn_video.FrameRate = 30;
+open(lat_dyn_video);
+figure('units','pixels','position',[0 0 1440 1080]);
+% hold on;
+tlayout = tiledlayout(1, nv, 'Padding', 'compact', 'TileSpacing', 'compact'); % 20-ish px spacing
+for t = 1:1:length(psi(1,1,:))
+    for k = 1:p.ts.nv
+        % subplot(1,p.ts.nv,k);
+        nexttile(k);
+        plot1 = contourf(abs(reshape(pertvecs(1:N,k,t),Nx,Ny)'),'levels',0.001, 'Linecolor', 'none');
+        hold on;
+        plot2 = contourf(psi(:,:,t),'levels',1, 'Linecolor', 'black', ...
+            'Facecolor', 'none', 'LineWidth', 2);
+        hold off;
+        set(gca,'YDir','normal');
+        set(gca,'YTickLabel',[],'XTickLabel',[]);
+        title(join(['$\|\delta \psi^{(' num2str(k) ')} \|$']),'Interpreter','latex');
+        clim([0 0.1]);
+        xlim([1 p.rmesh.Nx]);
+        ylim([1 p.rmesh.Ny]);
+        axis square;
+        colorbar;
+        colormap jet;
+        % colorbar(gca,'Ticks',[-0.005 0.05],'TickLabels',[0 0.05]);
+        colorbar(gca,'Ticks',[0 0.1]);
+        hold off;
+    end
+    frame = getframe(gcf);
+    writeVideo(lat_dyn_video,frame);
+    % clear plot1 plot2;
+    tlayout = tiledlayout(1, nv, 'Padding', 'compact', 'TileSpacing', 'compact'); % 20-ish px spacing
+end
+hold off;
+close(lat_dyn_video);
+
+%%
+N = p.rmesh.N;
+Nx = p.rmesh.Nx;
+Ny = p.rmesh.Ny;
+
+% Video setup
+dynvideoname = 'dH123';
+dynVideoFilename = join([dynvideoname p.dyn_run_name]);
+lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
+lat_dyn_video.Quality = 100;
+lat_dyn_video.FrameRate = 10;
+open(lat_dyn_video);
+
+nv = p.ts.nv;
+
+fig = figure('units','pixels','position',[0 0 1440 1080]);
+% fig = figure;
+tlayout = tiledlayout(1, nv, 'Padding', 'compact', 'TileSpacing', 'compact'); % 20-ish px spacing
+
+% Loop over time steps
+for t = 1:size(psi, 3)
+    for k = 1:p.ts.nv
+        nexttile(k);
+        contourf(abs(reshape(pertvecs(1:N,k,t),Nx,Ny)'), ...
+            'levels',0.001, 'Linecolor', 'none');
+        hold on;
+        contourf(psi(:,:,t),'levels',1, 'Linecolor', 'black', ...
+            'Facecolor', 'none', 'LineWidth', 2);
+        set(gca,'YDir','normal');
+        set(gca,'YTickLabel',[],'XTickLabel',[]);
+        clim([0 0.1]);
+        xlim([1 p.rmesh.Nx]);
+        ylim([1 p.rmesh.Ny]);
+        axis square;
+        colorbar;
+        colormap jet;
+        % colorbar(gca,'Ticks',[-0.005 0.05],'TickLabels',[0 0.05]);
+        colorbar(gca,'Ticks',[0 0.1]);
+        hold off;
+    end
+
+    % Export graphics to image and convert to frame
+    exportgraphics(fig, 'frame.png');
+    frameimg = imread('frame.png');
+    [h, w, ~] = size(frameimg);
+    h_even = 2 * floor(h / 2);
+    w_even = 2 * floor(w / 2);
+    frameimg = frameimg(1:h_even, 1:w_even, :);
+    writeVideo(lat_dyn_video, im2frame(frameimg));
+
+    % Optional: clear tiles to save memory
+    clf(fig);
+    tlayout = tiledlayout(1, p.ts.nv, 'Padding', 'tight', 'TileSpacing', 'none');
+end
+
+close(lat_dyn_video);
+close(fig);
+
+
 %% dpsi1 video with rolls
 addpath('~/Documents/pdes/src/othercolor/');
 colmap = othercolor('YlOrRd9');
@@ -567,32 +714,38 @@ set(gca,'TickLabelInterpreter','tex','FontSize',15);
 colorbar;
 
 %% lambda_1 cummulative average (lam1ca)
-lam1cafig = figure;
-axlam1fig = axes('Parent',lam1cafig);
-hold(axlam1fig,'on');
+lamcafig = figure;
+axlamfig = axes('Parent',lamcafig);
+hold(axlamfig,'on');
 
-time = linspace(1,p.totimeu,floor(p.totimeu/p.tN));
-lam1ca = cumsum(lam1inst)./(1:length(lam1inst));
-plot(time,lam1ca,'MarkerSize',10,'Marker','.','LineWidth',1);
+hold on;
+time = linspace(1,p.sim.tu,floor(p.sim.tu/p.ts.tN));
+for k = 1:p.ts.nv
+    lamca = cumsum(laminst(k,:))./(1:length(laminst(k,:)));
+    plot(time,lamca,'MarkerSize',10,'Marker','.','LineWidth',1,'DisplayName',join(['k = ' num2str(k)]));
+end
+hold off;
 % plot(cumsum(lam1inst)./(1:length(lam1inst)), '-o');
 xlim([1 time(end)]);
-yline(0,'Parent',axlam1fig);
+ylim([0 1]);
+% yline(0,'Parent',axlam1fig);
+legend;
 
-box(axlam1fig,'on');
-axis(axlam1fig,'square');
-hold(axlam1fig,'off');
-set(axlam1fig,'FontSize',15,'LineWidth',1,'XMinorTick','on','YMinorTick','on');
-ylabel('$\left<\lambda_{1}(t)\right>$','FontSize',30,'Interpreter','latex','Rotation',0);
+box(axlamfig,'on');
+axis(axlamfig,'square');
+hold(axlamfig,'off');
+set(axlamfig,'FontSize',15,'LineWidth',1,'XMinorTick','on','YMinorTick','on');
+ylabel('$\left<\lambda_{k}(t)\right>$','FontSize',30,'Interpreter','latex','Rotation',0);
 xlabel('$t$','FontSize',30,'Interpreter','latex');
 
 %% Fit: 'lam1 cummulative average fit'.
-time = linspace(1,p.totimeu,floor(p.totimeu/p.tN));
-lam1ca = cumsum(lam1inst)./(1:length(lam1inst));
-fprintf('lambda_1 : %.4f\n\n',lam1);
+time = linspace(1,p.sim.tu,floor(p.sim.tu/p.ts.tN));
+lam1ca = cumsum(laminst(1,:))./(1:length(laminst(1,:)));
+fprintf('lambda_1 : %.4f\n\n',lamgs(1));
 [xData, yData] = prepareCurveData( time, lam1ca );
 
 fiteqn = 'a+b/x';
-initExcludeXDataPoints = 2;
+initExcludeXDataPoints = 150;
 
 % Set up fittype and options.
 ft = fittype( fiteqn, 'independent', 'x', 'dependent', 'y' );
@@ -703,6 +856,17 @@ axis square;
 xlabel('nmax');
 ylabel('$||\delta \vec{m}||$','Interpreter','latex');
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
+
+%% FPV magnitude
+t1 = p.sim.tu - round(0.4*p.sim.tu) + 1;
+t2 = p.sim.tu;
+figure; plot(t1:t2,dHmag(1,t1:t2),'-o',Marker='.');
+axis square;
+set(gca,'TickLabelInterpreter','tex','FontSize',15);
+xlabel('$t$','Interpreter','latex','FontSize',30);
+ylabel('$\|\delta \vec{H}^{(1)}\|$','Interpreter','latex', ...
+    'Rotation',0,'FontSize',30);
+
 
 %% zeta contour figure
 

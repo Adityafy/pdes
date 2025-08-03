@@ -45,7 +45,7 @@ for k = 1:nv
     % domzvec(:,k) = latToVec(domzmat(:,:,k));
     dH(:,k,1) = [reshape(dpsimat(:,:,k)',[],1); ...
                  reshape(domzmat(:,:,k)',[],1)];
-    dH(:,k,1) = dH./norm(dH(:,k,1));
+    dH(:,k,1) = dH(:,k,1)./norm(dH(:,k,1));
     % dHhat(:,k,1)= [reshape(dpsihmat(:,:,k)',[],1); ...
     %              reshape(domzhmat(:,:,k)',[],1)];
     dHmag(k,1) = norm(dH(:,k,1));

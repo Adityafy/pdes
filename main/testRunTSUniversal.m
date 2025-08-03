@@ -16,7 +16,7 @@ load(dynICAddress,'p');
 
 % update the sim and etd field in p for tangent space calculations
 dt_ts = 0.1;
-tu_ts = 30;
+tu_ts = 400;
 p.sim.dt = dt_ts;
 p.sim.tu = tu_ts;
 p.sim.nmax = round(p.sim.tu/p.sim.dt);
@@ -25,13 +25,13 @@ if p.sim.tu < 1
     interv = 10;
 end
 p.sim.interv = interv;
-p.sim.makeLiveFig = 1; % 0/1 for no/yes figure on every time step
+p.sim.makeLiveFig = 0; % 0/1 for no/yes figure on every time step
 p.etd = etdPreCalcs(p.L1,p.L2,p.sim.dt);
 
 % ts calculation parameters for reorthonormalization
 tN = 1;
 nnorm = tN/p.sim.dt;
-nv = 1;
+nv = 3;
 ts = struct('tN',tN,'nnorm',nnorm,'nv',nv);
 
 % make the parameter struct from transients
@@ -45,4 +45,4 @@ tic;
 [psi,omz,zeta,u,v,pertvecs,dHmag,laminst,lamgs] = gshTSTimeIntg(p,dynICAddress);
 
 %%
-save(join([sfa p.dyn_run_name 'TS']),'-v7.3');
+save(join([sfa p.dyn_run_name 'TS' num2str(p.sim.tu) 'nv' num2str(nv)]),'-v7.3');
