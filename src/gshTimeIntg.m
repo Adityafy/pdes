@@ -17,6 +17,13 @@ function [psi, omz, zeta, u, v] = gshTimeIntg(p, ICfunc)
 
     nmax  = p.sim.nmax;     % Total number of time steps
     interv = p.sim.interv;  % Number of saved output intervals
+    etd = etdPreCalcs(p.L1,p.L2,p.sim.dt); % for etd
+
+    % Error if time steps are too large
+    if nmax >= 100000
+        error("Time steps are too large, this transient run is not " + ...
+            "recommended. Use the transient run that doesn't save transients.");
+    end
 
     % Precompute implicit matrix inverses if using finite-difference method
     if p.sim.runtype == 0
@@ -38,7 +45,7 @@ function [psi, omz, zeta, u, v] = gshTimeIntg(p, ICfunc)
             % Advance using pseudospectral exponential time differencing (ETD)
             [psimat, omzmat, zetamat, umat, vmat] = advGSHstepPSETD( ...
                 p, psimat, omzmat, zetamat, ...
-                p.etd.expL1dtmat, p.etd.expL2dtmat, @N1hat, @N2hat);
+                etd.expL1dtmat, etd.expL2dtmat, @N1hat, @N2hat);
         end
 
         % ============== Save simulation snapshots at specified intervals ==============
@@ -52,7 +59,7 @@ function [psi, omz, zeta, u, v] = gshTimeIntg(p, ICfunc)
         end
 
         % ============== Progress update every 10% of simulation ==============
-        if rem(n, round(nmax / 10)) == 0
+        if rem(n, round(nmax / p.sim.progReportFactor)) == 0
             fprintf('This is time step: %g / %g, ', n, nmax);
             toc;
         end

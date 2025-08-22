@@ -11,7 +11,7 @@ function [psimat,omzmat,zetamat,umat,vmat] = ...
     % ------------- predictor -------------
     psihguess = psihmat;
     omzhguess = omzhmat;
-    for iters = 2
+    for iters = 1:1
         psihpred = fft2(real(ifft2(psihmat))) .* expL1hmat ...
                     + 0.5 * dt * N1hfunc(p,psihguess,zetahmat) ...
                     + 0.5 * dt * expL1hmat .* N1hfunc(p,psihmat,zetahmat);
@@ -30,10 +30,10 @@ function [psimat,omzmat,zetamat,umat,vmat] = ...
                     + 0.5 * dt * N2hfunc(p,psihpred) ...
                     + 0.5 * dt * expL2hmat.*N2hfunc(p,psihmat);
 
-    psimat = real(ifft2(psihmat,'symmetric'));
-    omzmat = real(ifft2(omzhmat,'symmetric'));
-    zetamat = real(ifft2(zetahmat,'symmetric'));
+    psimat = real(ifft2(psihmat));
+    omzmat = real(ifft2(omzhmat));
+    zetamat = real(ifft2(zetahmat));
     
-    umat = real(ifft2(1i*Ky.*zetahmat,'symmetric'));
-    vmat = real(ifft2(-1i*Kx.*zetahmat,'symmetric'));
+    umat = real(ifft2(1i*Ky.*zetahmat));
+    vmat = real(ifft2(-1i*Kx.*zetahmat));
 end

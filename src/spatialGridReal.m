@@ -1,4 +1,4 @@
-function rmesh = spatialGridReal(lam_0,wlmult)
+function rmesh = spatialGridReal(lam_0,Gamma)
 % rmesh = spatialGridReal(lam_0,wlmult)
 % lam_0 is the critical wavenumber
 % wlmult is what I call the wavelength multiplier
@@ -8,6 +8,7 @@ function rmesh = spatialGridReal(lam_0,wlmult)
 % setting Nx to be 8 times the wlmult.
 % - Aditya
 
+wlmult = Gamma/2;
 Lx = lam_0 * wlmult;
 Ly = Lx;
 Nx = 8 * wlmult;

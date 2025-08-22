@@ -39,26 +39,27 @@ altframes = 2;
 %% Dynamics video (when no p present)
 
 dynvideoname = 'gshDyn';
-dynVideoFilename = join([dynvideoname run_name]);
+dynVideoFilename = join([dynvideoname p.dyn_run_name]);
 lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
 lat_dyn_video.FrameRate = 30;
 open(lat_dyn_video);
-[X,Y] = meshgrid(1:Nx,1:Ny);
-figure('units','pixels','position',[0 0 1440 1080]);
+x = p.rmesh.x; y = p.rmesh.y; Nx = p.rmesh.Nx; Ny = p.rmesh.Ny;
+figure;
+% figure('units','pixels','position',[0 0 1440 1080]);
 
 % hold on;
-for t = 1:1:length(psi(1,1,:))-1
+for t = 1:1:length(psi(1,1,:))
     % imagesc(psilat(:,:,t));
-    plot1 = contourf(psi(:,:,t),'levels',0.1, 'Linecolor', 'none');
+    plot1 = contourf(X,Y,psi(:,:,t),'levels',0.1, 'Linecolor', 'none');
     set(gca,'YDir','normal');
     hold on;
     % imagesc(zetalat(:,:,t));
     colorbar;
     colormap jet
     clim([-0.8 0.8]);
-    plot2 = quiver(X,Y,u(:,:,t),v(:,:,t),2,'black');
-    xlim([1 Nx]);
-    ylim([1 Ny]);
+    % plot2 = quiver(X,Y,u(:,:,t),v(:,:,t),2,'black');
+    % xlim([1 Nx]);
+    % ylim([1 Ny]);
     axis square;
     frame = getframe(gcf);
     writeVideo(lat_dyn_video,frame);
@@ -221,13 +222,23 @@ colormap parula;
 hold off;
 
 %% NEW dpsi1 video with rolls 
-N = p.rmesh.N;
-Nx = p.rmesh.Nx;
-Ny = p.rmesh.Ny;
+% N = p.rmesh.N;
+% Nx = p.rmesh.Nx;
+% Ny = p.rmesh.Ny;
+dH1 = squeeze(pertvecs(:,1,:));
 for n = 1:length(pertvecs(1,1,:))
-    dpsi1(:,:,n) = reshape(pertvecs(1:N,1,n),Nx,Ny)';
+    dpsi1(:,:,n) = reshape(pertvecs(1:p.rmesh.N,1,n),p.rmesh.Nx,p.rmesh.Ny)';
+    domz1(:,:,n) = reshape(pertvecs(p.rmesh.N+1:2*p.rmesh.N,1,n),p.rmesh.Nx,p.rmesh.Ny)';
 end
-dynvideoname = 'dH1';
+
+%%
+for n = 1:length(dH1(1,:))
+    dpsi1(:,:,n) = reshape(dH1(1:p.rmesh.N,n),p.rmesh.Nx,p.rmesh.Ny)';
+    domz1(:,:,n) = reshape(dH1(p.rmesh.N+1:2*p.rmesh.N,n),p.rmesh.Nx,p.rmesh.Ny)';
+end
+
+%%
+dynvideoname = 'dpsi1';
 dynVideoFilename = join([dynvideoname p.dyn_run_name]);
 lat_dyn_video = VideoWriter(dynVideoFilename, 'MPEG-4');
 lat_dyn_video.Quality = 100;
@@ -631,6 +642,33 @@ ylim([4 p.Ny]);
 axis square;
 title('$\left|\vec{U}\right|$','Interpreter','latex');
 
+%% (NEW ps) psi rolls with zeta and mean flow magnitude
+figure1 = figure;
+X = p.rmesh.X;
+Y = p.rmesh.Y;
+totaltimesteps = size(psi,3);
+fractn_howfar_from_end = 0.58;
+at_n = totaltimesteps - round(fractn_howfar_from_end * totaltimesteps);
+axes1 = axes('Parent',figure1);
+hold on;
+mfm = sqrt(u(:,:,at_n).^2+v(:,:,at_n).^2); % mean flow magnitude
+contourf(X,Y,mfm,'levels',0.05,'Linecolor','none');
+contourf(X,Y,psi(:,:,at_n),'levels',1, 'Linecolor', 'black', ...
+    'Facecolor', 'none', 'LineWidth', 1.5);
+
+quiver(X,Y,u(:,:,at_n),v(:,:,at_n),2,'black');
+
+hold off;
+set(gca,'YDir','normal');
+set(axes1,'CLim',[0 3],'FontSize',15,'XTick',zeros(1,0),'YTick',zeros(1,0));
+% colormap(othercolor('Blues4'));
+colormap jet;
+colorbar(axes1,'Ticks',[0 3]);
+xlim([X(1,1) X(end,end)]);
+ylim([Y(1,1) Y(end,end)]);
+axis square;
+title('$\left|\vec{U}\right|$','Interpreter','latex');
+
 %% doublepsi
 figure;
 hold on;
@@ -738,6 +776,17 @@ set(axlamfig,'FontSize',15,'LineWidth',1,'XMinorTick','on','YMinorTick','on');
 ylabel('$\left<\lambda_{k}(t)\right>$','FontSize',30,'Interpreter','latex','Rotation',0);
 xlabel('$t$','FontSize',30,'Interpreter','latex');
 
+%% Lyapunov Spectrum
+nvvec = (1:p.ts.nv)';
+myplot(nvvec,lamgs,'$k$','$\lambda_k$');
+
+
+%%
+dlamb = kydimension(lamgs,length(lamgs));
+
+%%
+dlamfit = kydimension(lamfit,length(lamfit));
+
 %% Fit: 'lam1 cummulative average fit'.
 time = linspace(1,p.sim.tu,floor(p.sim.tu/p.ts.tN));
 lam1ca = cumsum(laminst(1,:))./(1:length(laminst(1,:)));
@@ -745,7 +794,7 @@ fprintf('lambda_1 : %.4f\n\n',lamgs(1));
 [xData, yData] = prepareCurveData( time, lam1ca );
 
 fiteqn = 'a+b/x';
-initExcludeXDataPoints = 150;
+initExcludeXDataPoints = 50;
 
 % Set up fittype and options.
 ft = fittype( fiteqn, 'independent', 'x', 'dependent', 'y' );
@@ -850,15 +899,15 @@ figure;
 imagesc(dpsi1(:,:,end));
 
 %% FPV magnitude
-figure; plot(fpvmag,'-o',Marker='.');
-xlim([1 length(fpvmag)]);
+figure; plot(dHmag(1,:),'-o',Marker='.');
+xlim([1 length(dHmag(1,:))]);
 axis square;
 xlabel('nmax');
 ylabel('$||\delta \vec{m}||$','Interpreter','latex');
 set(gca,'TickLabelInterpreter','tex','FontSize',15);
 
 %% FPV magnitude
-t1 = p.sim.tu - round(0.4*p.sim.tu) + 1;
+t1 = p.sim.tu - round(0.9*p.sim.tu) + 1;
 t2 = p.sim.tu;
 figure; plot(t1:t2,dHmag(1,t1:t2),'-o',Marker='.');
 axis square;
@@ -871,7 +920,7 @@ ylabel('$\|\delta \vec{H}^{(1)}\|$','Interpreter','latex', ...
 %% zeta contour figure
 
 figure;
-contourf(zeta(:,:,p.totimeu),'Linecolor','none');
+contourf(zeta(:,:,p.sim.tu),'Linecolor','none');
 set(gca,'YDir','normal');
 axis square;
 colormap jet;
@@ -894,3 +943,27 @@ title('\zeta');
 % p3 = contourf(psimat(:,:,timestep), 'levels', 1, 'Linecolor', 'black', ...
 %     'Linewidth', 3,'Facecolor', 'none');
 % hold off;
+
+%%
+
+function D = kydimension(lamgs,M)
+%
+% D_lambda = kydimension(lamgs,M)
+%
+% Calculates the Kaplan-Yorke Dimension
+%
+%  lamgs    = vector of lyapunov exponents
+%  M        = system size
+
+jfd = 0; % jfd here is the j in Kaplan-Yorke Formula
+for j = 1:M-1
+    if sum(lamgs(1:j))>0 && sum(lamgs(1:j+1))<0
+        jfd = j;
+    end
+end
+D = jfd + sum(lamgs(1:jfd))/abs(lamgs(jfd+1));
+if D == 0
+    D = -1;
+end
+
+end

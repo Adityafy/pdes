@@ -1,9 +1,10 @@
-function [psi,omz,zeta,u,v,pertvecs,dHmag,laminst,lamgs] = gshTSTimeIntg(p,dynICAddress)
+function [psi,omz,zeta,dH1,dHmag,laminst,lamgs] = gshTSTimeIntg(p,dynICAddress)
 
 % dt = p.ts.dt;
 Nx = p.rmesh.Nx;
 Ny = p.rmesh.Ny;
 N = p.rmesh.N;
+tu = p.sim.tu;
 nv = p.ts.nv;
 tN = p.ts.tN;
 nmax = p.sim.nmax;
@@ -15,6 +16,12 @@ end
 [psimat,psi,omzmat,omz,zetamat,zeta] = dynICafterTr(dynICAddress);
 [dpsimat, dpsihmat, domzmat, domzhmat, ...
                     dzetamat, dH, laminst, dHmag] = tsics(p);
+
+etd = etdPreCalcs(p.L1,p.L2,p.sim.dt);
+
+% u = zeros(Nx,Ny,interv);
+% v = zeros(Nx,Ny,interv);
+% pertvecs = zeros(2*N,nv,interv);
 
 fprintf('Initial ||dH(:,1)|| = %.4e\n', norm(dH(:,1)));
 % figure;
@@ -46,15 +53,15 @@ for n = 1:nmax
         % zeta,  pseudospectral
         zetamat = zetaGSHspectral(p,omzmat);
         % psi, omz,  pseudospectral, etd
-        [psimat,omzmat,zetamat,umat,vmat] = ...
+        [psimat,omzmat,zetamat,~,~] = ...
             advGSHstepPSETD(p,psimat,omzmat,zetamat,...
-            p.etd.expL1dtmat,p.etd.expL2dtmat,@N1hat,@N2hat);
+            etd.expL1dtmat,etd.expL2dtmat,@N1hat,@N2hat);
 
         %================== TS ==================
         [dpsimat,domzmat,dzetamat,dH,dHmagn] = ...
             advGSHTSstepPSETD(p,psimat,omzmat,zetamat,...
             dpsimat,domzmat,dzetamat,...
-            p.etd.expL1dtmat,p.etd.expL2dtmat,@R1ts,@R2ts);
+            etd.expL1dtmat,etd.expL2dtmat,@R1ts,@R2ts);
 
         % if rem(n/nnorm) == 0
         %     [dpsimat, domzmat, dpsihmat, domzhmat, laminst] = ...
@@ -93,33 +100,36 @@ for n = 1:nmax
         psi(:,:,round(n*interv/nmax)) = psimat;
         omz(:,:,round(n*interv/nmax)) = omzmat;
         zeta(:,:,round(n*interv/nmax)) = zetamat;
-        u(:,:,round(n*interv/nmax)) = umat;
-        v(:,:,round(n*interv/nmax)) = vmat;
-        pertvecs(:,:,round(n*interv/nmax)) = dH;
+        % u(:,:,round(n*interv/nmax)) = umat;
+        % v(:,:,round(n*interv/nmax)) = vmat;
+        % pertvecs(:,:,round(n*interv/nmax)) = dH;
+        dH1(:,round(n*interv/nmax)) = dH(:,1);
         % dpsi1(:,:,round(n*interv/nmax)) = dpsi1mat;
         % domz1(:,:,round(n*interv/nmax)) = domz1mat;
     end
-    if rem(n,round(nmax/10)) == 0
+    if rem(n,round(nmax/p.sim.progReportFactor)) == 0
         fprintf('This is time step: %g / %g, ', n, nmax);
         toc;
     end
     if isnan(abs(sum(sum(psimat))))
-        error('blow up occured in psi..');
+        warning('blow up occured in psi..');
     end
     if abs(sum(sum(dpsimat(:,:,1)))) < 10^-5
         fprintf('time step : %g, ', n);
-        error('Perturbation vector elements went to zero');
+        warning('Perturbation vector elements went to zero');
     end
     
     if p.sim.makeLiveFig == 1
         subplot(1,2,1);
         imagesc(psimat); colorbar; colormap jet; clim([-1 1]); axis square;
+        % imagesc(zetamat); colorbar; colormap jet; clim([-1 1]); axis square;
+        title(join(['t = ', num2str(p.sim.dt*n)]))
         % imagesc([psimat psimat]); colorbar; colormap jet; clim([-0.8 0.8]);
         subplot(1,2,2);
         imagesc(dpsimat(:,:,1));
         % imagesc(dpsi1mat);
-        colorbar; axis square;  colormap jet; clim([-0.1 0.1]);
-        % clim([-1 1]);
+        colorbar; axis square;  colormap jet; %clim([-0.1 0.1]);
+        % clim([-0.1 0.1]);
         % % subplot(1,3,3); imagesc(zetatrmat); colorbar; axis square;
         drawnow;
     end
