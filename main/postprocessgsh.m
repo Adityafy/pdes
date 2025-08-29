@@ -943,7 +943,8 @@ title('\zeta');
 % p3 = contourf(psimat(:,:,timestep), 'levels', 1, 'Linecolor', 'black', ...
 %     'Linewidth', 3,'Facecolor', 'none');
 % hold off;
-
+%%
+Dlfit = kydimension(X,256);
 %%
 
 function D = kydimension(lamgs,M)

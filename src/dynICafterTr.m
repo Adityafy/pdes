@@ -1,8 +1,10 @@
 function [psimat,psi,omzmat,omz,zetamat,zeta] = dynICafterTr(dynAddress)
 % [psimat,psi,omzmat,omz,zetamat,zeta] = dynICafterTr(dynAddress)
 
+fprintf('\n Loading initial conditions.\n');
 load(dynAddress,'psiICpostTr','omzICpostTr', 'zetaICpostTr', ...
     'uICpostTr','vICpostTr');
+toc;
 psimat = psiICpostTr; % assigning end of transients to the 
                              % beginning of dynamics after transients
 zetamat = zetaICpostTr;

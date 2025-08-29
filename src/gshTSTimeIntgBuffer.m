@@ -1,4 +1,4 @@
-function [psi,omz,zeta,dH1,dHmag,laminst,lamgs] = gshTSTimeIntg(p,dynICAddress)
+function [dHmag,laminst,lamgs] = gshTSTimeIntgBuffer(p,dynICAddress)
 
 % dt = p.ts.dt;
 Nx = p.rmesh.Nx;
@@ -9,6 +9,7 @@ nv = p.ts.nv;
 tN = p.ts.tN;
 nmax = p.sim.nmax;
 interv = p.sim.interv;
+saveinterv = p.sim.saveinterv;
 nnorm = p.ts.nnorm;
 if p.sim.runtype == 0
         [matdivpsi, matdivomz] = impMatGSH(p,p.sim.dt);
@@ -18,6 +19,13 @@ end
                     dzetamat, dH, laminst, dHmag] = tsics(p);
 
 etd = etdPreCalcs(p.L1,p.L2,p.sim.dt);
+
+
+nBufLen = round(saveinterv/p.sim.dt);
+psi  = zeros(Nx,Ny,nBufLen);
+omz  = zeros(Nx,Ny,nBufLen);
+zeta = zeros(Nx,Ny,nBufLen);
+dH1  = zeros(2*N,nBufLen);
 
 % u = zeros(Nx,Ny,interv);
 % v = zeros(Nx,Ny,interv);
@@ -96,17 +104,58 @@ for n = 1:nmax
     %================== saving dynamics at intervals ==================
     dHmag(:,n) = dHmagn;
     % laminst(:,n) = laminstn;
-    if rem(n,nmax/interv) == 0
-        psi(:,:,round(n*interv/nmax)) = psimat;
-        omz(:,:,round(n*interv/nmax)) = omzmat;
-        zeta(:,:,round(n*interv/nmax)) = zetamat;
-        % u(:,:,round(n*interv/nmax)) = umat;
-        % v(:,:,round(n*interv/nmax)) = vmat;
-        % pertvecs(:,:,round(n*interv/nmax)) = dH;
-        dH1(:,round(n*interv/nmax)) = dH(:,1);
-        % dpsi1(:,:,round(n*interv/nmax)) = dpsi1mat;
-        % domz1(:,:,round(n*interv/nmax)) = domz1mat;
+    % if rem(n,nmax/interv) == 0
+    %     psi(:,:,round(n*interv/nmax)) = psimat;
+    %     omz(:,:,round(n*interv/nmax)) = omzmat;
+    %     zeta(:,:,round(n*interv/nmax)) = zetamat;
+    %     % u(:,:,round(n*interv/nmax)) = umat;
+    %     % v(:,:,round(n*interv/nmax)) = vmat;
+    %     % pertvecs(:,:,round(n*interv/nmax)) = dH;
+    %     dH1(:,round(n*interv/nmax)) = dH(:,1);
+    %     % dpsi1(:,:,round(n*interv/nmax)) = dpsi1mat;
+    %     % domz1(:,:,round(n*interv/nmax)) = domz1mat;
+    % end
+
+    % store in buffer
+    idx = mod(n-1, nBufLen) + 1;
+    psi(:,:,idx)  = psimat;
+    omz(:,:,idx)  = omzmat;
+    zeta(:,:,idx) = zetamat;
+    dH1(:,idx)    = dH(:,1);
+
+    % dump to disk when buffer fills
+    if idx == nBufLen
+        sfa = '~/Documents/pdesDataDump/';
+        fname = sprintf('%s/part_%d-%d.mat', sfa, n-nBufLen+1, n);
+        meta.tstart = n-nBufLen+1;
+        meta.tend   = n;
+        meta.dt     = p.sim.dt;
+        save(fname,'psi','omz','zeta','dH1','meta','-v7.3');
+        clear psi omz zeta dH1;
+        % reallocate fresh buffer
+        psi  = zeros(Nx,Ny,nBufLen);
+        omz  = zeros(Nx,Ny,nBufLen);
+        zeta = zeros(Nx,Ny,nBufLen);
+        dH1  = zeros(2*N,nBufLen);
     end
+    % if n <= saveinterv/p.sim.dt
+    %     psi(:,:,n) = psimat;
+    %     omz(:,:,n) = omzmat;
+    %     zeta(:,:,n) = zetamat;
+    %     dH1(:,n) = dH1;
+    % elseif n > saveinterv/p.sim.dt
+    %     psi(:,:,rem(n,round(saveinterv/p.sim.dt))) = psimat;
+    %     omz(:,:,rem(n,round(saveinterv/p.sim.dt))) = omzmat;
+    %     zeta(:,:,rem(n,round(saveinterv/p.sim.dt))) = zetamat;
+    %     pertvecs(:,:,rem(n,round(saveinterv/p.sim.dt))) = dH;
+    % end
+
+    % if rem(n,nmax/saveinterv) == 0
+    %     sfa = '~/Documents/pdesDataDump/';
+    %     partname = join([num2str(round(n-saveinterv+1)) '-' num2str(n)]);
+    %     save(partname,'psi','omz','zeta','dH1');
+    %     clearvars psi omz zeta dH1;
+    % end
     if rem(n,round(nmax/p.sim.progReportFactor)) == 0
         fprintf('This is time step: %g / %g, ', n, nmax);
         toc;
@@ -128,7 +177,7 @@ for n = 1:nmax
         subplot(1,2,2);
         imagesc(dpsimat(:,:,1));
         % imagesc(dpsi1mat);
-        colorbar; axis square;  colormap jet; %clim([-0.1 0.1]);
+        colorbar; axis square; colormap jet; %clim([-0.1 0.1]);
         % clim([-0.1 0.1]);
         % % subplot(1,3,3); imagesc(zetatrmat); colorbar; axis square;
         drawnow;
@@ -137,6 +186,14 @@ end
 
 for k = 1:nv
     lamgs(k,1) = (1/(p.sim.tu/p.ts.tN))*sum(laminst(k,:));
+end
+
+timemark = string(datetime('now','Format','yyyy-MM-dd_HHmmss'));
+mkdir(join([sfa timemark]));
+fname = sprintf('%s/part_*.mat', sfa);
+files = dir('part_*.mat');
+for k = 1:numel(files)
+    movefile(join([sfa files(k).name]),join([sfa timemark]));
 end
 
 end
