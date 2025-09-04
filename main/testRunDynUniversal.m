@@ -14,7 +14,7 @@ con = initControlParams('csq',0.1,'gm',50);
 
 %% SIMULATION PARAMETERS
 sim.lam_0 = 2*pi; % critical roll wavelength (not a sim parameter but for now)
-sim.Gamma = 15; % aspect ratio
+sim.Gamma = 28; % aspect ratio
 sim.dt = 0.1;
 sim.tu = 100000; % time units
 sim.nmax = round(sim.tu/sim.dt);
@@ -22,13 +22,13 @@ sim.seed = 1;
 sim.frgamma = pi/2; %filtering radius gamma
 sim.wlmult = sim.Gamma/2; % wavelength multiplier (determines Lx) (do not change)
 sim.dynICtype = 1; % initial condition type for starting transients simulation
-sim.runtype = 0; % 0 for finite difference + semi-Implicit
+sim.runtype = 1; % 0 for finite difference + semi-Implicit
                 % 1 for pseudospectral
 sim.interv = floor(sim.tu); %intervals for saving dynamics
 
 %%% switches
 sim.progReportFactor = 10;
-sim.makeLiveFig = 0;
+sim.makeLiveFig = 1;
 sim.saveTrDyn = 0;
 sim.noSavingDynInLoop = 1;
 sim.saveICforTS = 1;
@@ -58,8 +58,7 @@ if sim.saveTrDyn == 1
 end
 
 if sim.noSavingDynInLoop ==1
-    [psiICpostTr, omzICpostTr, zetaICpostTr, ...
-    uICpostTr, vICpostTr] = gshTimeIntgICpostTr(p, @gsh_IC_for_transients);
+    [psiICpostTr, omzICpostTr, zetaICpostTr] = gshTimeIntgICpostTr(p, @gsh_IC_for_transients);
 end
 
 if sim.saveICforTS==1

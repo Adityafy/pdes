@@ -1,4 +1,4 @@
-function [psimat,omzmat,zetamat,umat,vmat] = ...
+function [psimat,omzmat,zetamat] = ...
                     advGSHstepPSETD(p,psimat,omzmat,zetamat,...
                                     expL1hmat,expL2hmat,N1hfunc,N2hfunc)
     dt = p.sim.dt;
@@ -34,6 +34,6 @@ function [psimat,omzmat,zetamat,umat,vmat] = ...
     omzmat = real(ifft2(omzhmat));
     zetamat = real(ifft2(zetahmat));
     
-    umat = real(ifft2(1i*Ky.*zetahmat));
-    vmat = real(ifft2(-1i*Kx.*zetahmat));
+    % umat = real(ifft2(1i*Ky.*zetahmat));
+    % vmat = real(ifft2(-1i*Kx.*zetahmat));
 end

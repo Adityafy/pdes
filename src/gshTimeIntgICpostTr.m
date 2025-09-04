@@ -1,5 +1,4 @@
-function [psiICpostTr, omzICpostTr, zetaICpostTr, ...
-    uICpostTr, vICpostTr] = gshTimeIntgICpostTr(p, ICfunc)
+function [psiICpostTr, omzICpostTr, zetaICpostTr] = gshTimeIntgICpostTr(p, ICfunc)
 % gshTimeIntgICpostTr
 % ------------------------------------------------------------
 % Time-integrates the Generalized Swift-Hohenberg (GSH) system 
@@ -43,7 +42,7 @@ for n = 1:nmax
     if p.sim.runtype == 0
         % -- Finite Difference Semi-Implicit Scheme --
         % Advance fields using finite-difference time stepping
-        [psimat, omzmat, zetamat, umat, vmat] = advGSHstepFDSI( ...
+        [psimat, omzmat, zetamat] = advGSHstepFDSI( ...
             psimat, omzmat, zetamat, matdivpsi, matdivomz, p);
 
     elseif p.sim.runtype == 1
@@ -53,7 +52,7 @@ for n = 1:nmax
         zetamat = zetaGSHspectral(p, omzmat);
 
         % Advance fields using ETD-based pseudospectral method
-        [psimat, omzmat, zetamat, umat, vmat] = advGSHstepPSETD( ...
+        [psimat, omzmat, zetamat] = advGSHstepPSETD( ...
             p, psimat, omzmat, zetamat, ...
             etd.expL1dtmat, etd.expL2dtmat, @N1hat, @N2hat);
     end
@@ -87,6 +86,6 @@ end
 psiICpostTr  = psimat;
 omzICpostTr  = omzmat;
 zetaICpostTr = zetamat;
-uICpostTr    = umat;   % Not evolved or used in this function
-vICpostTr    = vmat;   % Not evolved or used in this function
+% uICpostTr    = umat;   % Not evolved or used in this function
+% vICpostTr    = vmat;   % Not evolved or used in this function
 end

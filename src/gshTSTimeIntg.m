@@ -1,4 +1,4 @@
-function [psi,omz,zeta,dH1,dHmag,laminst,lamgs] = gshTSTimeIntg(p,dynICAddress)
+function [psi,omz,zeta,dH,Rmat,dHmag,laminst,lamgs] = gshTSTimeIntg(p,dynICAddress)
 
 % dt = p.ts.dt;
 Nx = p.rmesh.Nx;
@@ -15,15 +15,23 @@ if p.sim.runtype == 0
 end
 [psimat,psi,omzmat,omz,zetamat,zeta] = dynICafterTr(dynICAddress);
 [dpsimat, dpsihmat, domzmat, domzhmat, ...
-                    dzetamat, dH, laminst, dHmag] = tsics(p);
+                    dzetamat, dHn, laminst, dHmag] = tsics(p);
 
 etd = etdPreCalcs(p.L1,p.L2,p.sim.dt);
+
+if p.sim.savingtype == 1
+    nBufLen = round(p.sim.bufInterv/p.sim.dt);
+    psi  = zeros(Nx,Ny,nBufLen);
+    omz  = zeros(Nx,Ny,nBufLen);
+    zeta = zeros(Nx,Ny,nBufLen);
+    dH  = zeros(2*N,nBufLen);
+end
 
 % u = zeros(Nx,Ny,interv);
 % v = zeros(Nx,Ny,interv);
 % pertvecs = zeros(2*N,nv,interv);
 
-fprintf('Initial ||dH(:,1)|| = %.4e\n', norm(dH(:,1)));
+fprintf('Initial ||dH(:,1)|| = %.4e\n', norm(dHn(:,1)));
 % figure;
 % imagesc(dpsimat(:,:,1)); title('Initial \delta\psi_n^{(1)}'); 
 % colormap jet; colorbar; axis square; drawnow;
@@ -35,30 +43,30 @@ for n = 1:nmax
     if p.sim.runtype == 0
         [psimat,omzmat,zetamat,~,~] = advGSHstepFDSI(psimat, ...
             omzmat, zetamat, matdivpsi, matdivomz, p);
-        [psimat, omzmat, dH1, dHmag, ~] = advGSHdH1stepFDSI( ...
+        [psimat, omzmat, dH, dHmag, ~] = advGSHdH1stepFDSI( ...
             psimat, omzmat, zetamat, dpsimat(:,:,1), domzmat(:,:,1), dzetamat(:,:,1), ...
             matdivpsi, matdivomz, n, dHmag, 0, 0, p);
         %------------------ renormalization and LLE ----------------------
         if rem(n,nnorm) == 0
-            lam1inst = [lam1inst, (1/tN) * log(abs(norm(dH1)))];
-            dH1 = dH1./norm(dH1);
-            dpsi1mat = reshape(dH1(1:N),Nx,Ny)';
-            domz1mat = reshape(dH1(N+1:2*N),Nx,Ny)';
+            lam1inst = [lam1inst, (1/tN) * log(abs(norm(dH)))];
+            dH = dH./norm(dH);
+            dpsi1mat = reshape(dH(1:N),Nx,Ny)';
+            domz1mat = reshape(dH(N+1:2*N),Nx,Ny)';
         end
     
-        dpsi1mat = reshape(dH1(1:N),Nx,Ny)';
-        domz1mat = reshape(dH1(N+1:2*N),Nx,Ny)';
+        dpsi1mat = reshape(dH(1:N),Nx,Ny)';
+        domz1mat = reshape(dH(N+1:2*N),Nx,Ny)';
 
     elseif p.sim.runtype == 1
         % zeta,  pseudospectral
         zetamat = zetaGSHspectral(p,omzmat);
         % psi, omz,  pseudospectral, etd
-        [psimat,omzmat,zetamat,~,~] = ...
+        [psimat,omzmat,zetamat] = ...
             advGSHstepPSETD(p,psimat,omzmat,zetamat,...
             etd.expL1dtmat,etd.expL2dtmat,@N1hat,@N2hat);
 
         %================== TS ==================
-        [dpsimat,domzmat,dzetamat,dH,dHmagn] = ...
+        [dpsimat,domzmat,dzetamat,dHn,dHmagn] = ...
             advGSHTSstepPSETD(p,psimat,omzmat,zetamat,...
             dpsimat,domzmat,dzetamat,...
             etd.expL1dtmat,etd.expL2dtmat,@R1ts,@R2ts);
@@ -72,38 +80,89 @@ for n = 1:nmax
             %----just using one vector
             % dH(:,1) = dH(:,1) / norm(dH(:,1));
             % laminst(1,round(n/nnorm)) = (1/tN) * log(norm(dH(:,1)));
-            
+            renorm_idx = round(n/nnorm);
             %----using multiple vectors
-            [Q,R]= qr(dH,'econ','vector');
-            dH = Q(:,1:nv);
-            dH1(:,round(n/nnorm)) = dH(:,1);
+            [Q,Rn]= qr(dHn,'econ','vector');
+            dHn = Q(:,1:nv);
+            % dH1(:,idx) = dH(:,1);
             for k = 1:nv
-                laminst(k,round(n/nnorm)) = (1/tN)*log(abs(R(k,k)));
+                laminst(k,renorm_idx) = (1/tN)*log(abs(Rn(k,k)));
             end
 
             for k = 1:nv
-                dpsimat(:,:,k) = reshape(dH(1:N,k),Nx,Ny)';
-                domzmat(:,:,k) = reshape(dH(N+1:2*N,k),Nx,Ny)';
-                % dpsimat(:,:,k) = vecToLat(dH(1:N,k),Nx,Ny);
-                % domzmat(:,:,k) = vecToLat(dH(N+1:2*N,k),Nx,Ny);
+                dpsimat(:,:,k) = reshape(dHn(1:N,k),Nx,Ny)';
+                domzmat(:,:,k) = reshape(dHn(N+1:2*N,k),Nx,Ny)';
                 dpsihmat(:,:,k) = fft2(dpsimat(:,:,k));
                 domzhmat(:,:,k) = fft2(domzmat(:,:,k));
-                dHmagn(k,1) = norm(dH(:,k));
+                dHmagn(k,1) = norm(dHn(:,k));
             end
         end
 
     end
+
     %================== saving dynamics at intervals ==================
     dHmag(:,n) = dHmagn;
     % laminst(:,n) = laminstn;
-    if rem(n,nmax/interv) == 0
-        psi(:,:,round(n*interv/nmax)) = psimat;
-        omz(:,:,round(n*interv/nmax)) = omzmat;
-        zeta(:,:,round(n*interv/nmax)) = zetamat;
+    if p.sim.savingtype == 0
+        psi = psimat;
+        omz = omzmat;
+        zeta = zetamat;
+        dH = dHn(:,1);
+
+    elseif p.sim.savingtype == 1 % saving all time steps in parts
+        % store in buffer
+        idx = mod(n-1, nBufLen) + 1;
+        psi(:,:,idx)  = psimat;
+        omz(:,:,idx)  = omzmat;
+        zeta(:,:,idx) = zetamat;
+        dH(:,idx)    = dHn(:,1);
+        % dump to disk when buffer fills
+        if idx == nBufLen
+            sfa = '~/Documents/pdesDataDump/';
+            fname = sprintf('%s/part_%d-%d.mat', sfa, n-nBufLen+1, n);
+            meta.tstart = n-nBufLen+1;
+            meta.tend   = n;
+            meta.dt     = p.sim.dt;
+            save(fname,'psi','omz','zeta','dH','meta','-v7.3');
+            clear psi omz zeta dH;
+            % reallocate fresh buffer
+            psi  = zeros(Nx,Ny,nBufLen);
+            omz  = zeros(Nx,Ny,nBufLen);
+            zeta = zeros(Nx,Ny,nBufLen);
+            dH  = zeros(2*N,nBufLen);
+        end
+
+    elseif p.sim.savingtype == 2
+        if rem(n,nmax/interv) == 0
+            psi(:,:,round(n*interv/nmax)) = psimat;
+            omz(:,:,round(n*interv/nmax)) = omzmat;
+            zeta(:,:,round(n*interv/nmax)) = zetamat;
+            % u(:,:,round(n*interv/nmax)) = umat;
+            % v(:,:,round(n*interv/nmax)) = vmat;
+            % pertvecs(:,:,round(n*interv/nmax)) = dH;
+            dH(:,:,round(n*interv/nmax)) = dHn(:,1);
+            % dpsi1(:,:,round(n*interv/nmax)) = dpsi1mat;
+            % domz1(:,:,round(n*interv/nmax)) = domz1mat;
+        end
+    elseif p.sim.savingtype == 3
+
+        % psi(:,:,n) = psimat;
+        % omz(:,:,n) = omzmat;
+        % zeta(:,:,n) = zetamat;
         % u(:,:,round(n*interv/nmax)) = umat;
         % v(:,:,round(n*interv/nmax)) = vmat;
         % pertvecs(:,:,round(n*interv/nmax)) = dH;
-        dH1(:,round(n*interv/nmax)) = dH(:,1);
+        
+        if rem(n,nnorm) == 0
+            renorm_idx = round(n/nnorm);
+            psi(:,:,renorm_idx) = psimat;
+            omz(:,:,renorm_idx) = omzmat;
+            zeta(:,:,renorm_idx) = zetamat;
+            Rmat(:,:,renorm_idx) = Rn;
+            for k = 1:nv
+                dH(:,k,renorm_idx) = dHn(:,k);
+            end
+        end
         % dpsi1(:,:,round(n*interv/nmax)) = dpsi1mat;
         % domz1(:,:,round(n*interv/nmax)) = domz1mat;
     end

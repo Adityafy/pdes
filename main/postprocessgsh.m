@@ -828,6 +828,52 @@ ylabel('$\left<\lambda_{1}(t)\right>_t/t$','FontSize',30,'Interpreter','latex','
 xlabel('$t$','FontSize',30,'Interpreter','latex');
 box on; axis square;
 
+%% Fit: 'lamda all cummulative average fit'.
+time = linspace(1,p.sim.tu,floor(p.sim.tu/p.ts.tN));
+lamgs_from_fit = [];
+
+for idx = 1:140
+    lamkca = cumsum(laminst(idx,:))./(1:length(laminst(idx,:)));
+    fprintf('lambda_%d : %.4f\n\n',idx,lamkca(end));
+    [xData, yData] = prepareCurveData( time, lamkca );
+
+    fiteqn = 'a+b/x';
+    initExcludeXDataPoints = 500;
+
+    % Set up fittype and options.
+    ft = fittype( fiteqn, 'independent', 'x', 'dependent', 'y' );
+    excludedPoints = xData < initExcludeXDataPoints;
+    opts = fitoptions( 'Method', 'NonlinearLeastSquares' );
+    opts.Display = 'Off';
+    opts.StartPoint = [0.1 -1];
+    opts.Exclude = excludedPoints;
+
+    % Fit model to data.
+    [fitresult, gof] = fit( xData, yData, ft, opts );
+    fprintf('Fitresult:\n');
+    disp(fitresult);
+    lamgs_from_fit = [lamgs_from_fit fitresult.a];  
+end
+    
+% % Plot fit with data.
+% figure;
+% hold on;
+% h = plot( fitresult,'b-', xData, yData,'k.', excludedPoints, 'r*');
+% ylim([-max(abs(yData)) max(abs(yData))]);
+% xlim([xData(1) xData(end)]);
+% xaxis = yline(0);
+% set(h,'LineWidth',1,'MarkerSize',6);
+% fitname = join(['(' num2str(fitresult.a) ') + (' num2str(fitresult.b) ')/t']);
+% excludeLegend = join(['Initial points excluded: ' num2str(initExcludeXDataPoints)]);
+% legend( h, '$\left<\lambda_{1}(t)\right>_t/t$', excludeLegend, ...
+%     fitname, 'Location', 'SouthEast', 'Interpreter', 'latex' );
+% % Label axes
+% set(gca,'TickLabelInterpreter','tex','FontSize',15,'LineWidth',1,'XMinorTick','on','YMinorTick','on');
+% ylabel('$\left<\lambda_{1}(t)\right>_t/t$','FontSize',30,'Interpreter','latex','Rotation',90);
+% % ylabel('$(\sum_{i=0}^t\lambda_{1,\,i})/t$','FontSize',30,'Interpreter','latex','Rotation',0);
+% xlabel('$t$','FontSize',30,'Interpreter','latex');
+% box on; axis square;
+
 %% Mean flow: maximum and threshold
 % addpath('../../../pdes/src/');
 maxmfst = zeros(1,p.totimeu);
