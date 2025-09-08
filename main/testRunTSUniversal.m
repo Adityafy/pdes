@@ -1,21 +1,21 @@
 %% Script for GSH TS 
 % attempt to combine FDSI and PSETD run through a single script
 
-clearvars;
+clear all;
 close all;
 
 addpath('../src/');
 sfa = '../../pdesDataDump/'; % saved files address
 
 %% Load initial condtions from transients.
-dynICAddress = join([sfa 'ps51N64eps0-7sig1csq0-1gm50tu50s1Transients']);
+dynICAddress = join([sfa 'psG30eps0-7sig1csq0-8gm50tu100000s1ICpostTr']);
 % load(dynICFileAddress);
 load(dynICAddress,'p'); % load p to change some fields for ts calcs
 
 %% Set up simulation parameters for tangent space calculations.
 % we change the fields in simulation struct (sim) of p struct
 dt_ts = 0.1;
-tu_ts = 5;
+tu_ts = 900;
 p.sim.dt = dt_ts;
 p.sim.tu = tu_ts;
 p.sim.nmax = round(p.sim.tu/p.sim.dt);
@@ -42,7 +42,7 @@ p.sim.progReportFactor = 10;
 p.etd = etdPreCalcs(p.L1,p.L2,p.sim.dt); % imperetive to update this
 
 %% ts calculation parameters for reorthonormalization
-tN = 1; % renormalization time units
+tN = 2; % renormalization time units
 nnorm = tN/p.sim.dt; % renormalization time step interval
 nv = 1; % number of vectors to be calculated
 ts = struct('tN',tN,'nnorm',nnorm,'nv',nv); % struct for tangent space parameters
@@ -55,9 +55,9 @@ fprintf(join(['Running tangent space ' p.dyn_run_name ' ...\n']));
 
 %% Time Integration
 tic;
-[psi,omz,zeta,dH1,dHmag,laminst,lamgs] = gshTSTimeIntg(p,dynICAddress);
+[psi,omz,zeta,dH,dHmag,laminst,lamgs] = gshTSTimeIntg(p,dynICAddress);
 % [dHmag,laminst,lamgs] = gshTSTimeIntgBuffer(p,dynICAddress);
 toc;
 
 %%
-% save(join([sfa p.dyn_run_name 'TS' num2str(p.sim.tu) 'nv' num2str(nv)]),'-v7.3');
+save(join([sfa p.dyn_run_name 'TS' num2str(p.sim.tu) 'nv' num2str(nv)]),'-v7.3');

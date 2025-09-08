@@ -14,7 +14,7 @@ con = initControlParams('csq',0.1,'gm',50);
 
 %% SIMULATION PARAMETERS
 sim.lam_0 = 2*pi; % critical roll wavelength (not a sim parameter but for now)
-sim.Gamma = 28; % aspect ratio
+sim.Gamma = 30; % aspect ratio
 sim.dt = 0.1;
 sim.tu = 100000; % time units
 sim.nmax = round(sim.tu/sim.dt);
@@ -28,8 +28,8 @@ sim.interv = floor(sim.tu); %intervals for saving dynamics
 
 %%% switches
 sim.progReportFactor = 10;
-sim.makeLiveFig = 1;
-sim.saveTrDyn = 0;
+sim.makeLiveFig = 0;
+sim.saveTrDyn = 0; % DO NOT TURN THIS ON unless absolutely necessary
 sim.noSavingDynInLoop = 1;
 sim.saveICforTS = 1;
 
@@ -53,8 +53,7 @@ if sim.saveTrDyn == 1
     vICpostTr = vtr(:,:,end);
 
     save(join([sfa p.dyn_run_name 'Transients']),'p','psitr','omztr','zetatr', ...
-        'utr','vtr','psiICpostTr','omzICpostTr', 'zetaICpostTr', ...
-        'uICpostTr','vICpostTr','-v7.3');
+        'psiICpostTr','omzICpostTr', 'zetaICpostTr', '-v7.3');
 end
 
 if sim.noSavingDynInLoop ==1
@@ -63,7 +62,7 @@ end
 
 if sim.saveICforTS==1
     save(join([sfa p.dyn_run_name 'ICpostTr']),'p','psiICpostTr', ...
-        'omzICpostTr', 'zetaICpostTr', 'uICpostTr','vICpostTr','-v7.3');
+        'omzICpostTr', 'zetaICpostTr','-v7.3');
 end
 
 

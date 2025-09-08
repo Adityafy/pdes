@@ -1,4 +1,4 @@
-function [psi,omz,zeta,dH,Rmat,dHmag,laminst,lamgs] = gshTSTimeIntg(p,dynICAddress)
+function [psi,omz,zeta,dH,dHmag,laminst,lamgs] = gshTSTimeIntg(p,dynICAddress)
 
 % dt = p.ts.dt;
 Nx = p.rmesh.Nx;
@@ -108,6 +108,7 @@ for n = 1:nmax
         omz = omzmat;
         zeta = zetamat;
         dH = dHn(:,1);
+        % Rmat = Rn;
 
     elseif p.sim.savingtype == 1 % saving all time steps in parts
         % store in buffer
@@ -116,6 +117,7 @@ for n = 1:nmax
         omz(:,:,idx)  = omzmat;
         zeta(:,:,idx) = zetamat;
         dH(:,idx)    = dHn(:,1);
+        % Rmat(:,:,idx) = Rn;
         % dump to disk when buffer fills
         if idx == nBufLen
             sfa = '~/Documents/pdesDataDump/';
@@ -144,15 +146,15 @@ for n = 1:nmax
             % dpsi1(:,:,round(n*interv/nmax)) = dpsi1mat;
             % domz1(:,:,round(n*interv/nmax)) = domz1mat;
         end
+        Rmat = Rn;
     elseif p.sim.savingtype == 3
-
+        %%%saving only at renormalization
         % psi(:,:,n) = psimat;
         % omz(:,:,n) = omzmat;
         % zeta(:,:,n) = zetamat;
         % u(:,:,round(n*interv/nmax)) = umat;
         % v(:,:,round(n*interv/nmax)) = vmat;
         % pertvecs(:,:,round(n*interv/nmax)) = dH;
-        
         if rem(n,nnorm) == 0
             renorm_idx = round(n/nnorm);
             psi(:,:,renorm_idx) = psimat;
@@ -188,7 +190,7 @@ for n = 1:nmax
         imagesc(dpsimat(:,:,1));
         % imagesc(dpsi1mat);
         colorbar; axis square;  colormap jet; %clim([-0.1 0.1]);
-        % clim([-0.1 0.1]);
+        clim([-0.05 0.05]);
         % % subplot(1,3,3); imagesc(zetatrmat); colorbar; axis square;
         drawnow;
     end
