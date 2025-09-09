@@ -193,6 +193,11 @@ for n = 1:nmax
         clim([-0.05 0.05]);
         % % subplot(1,3,3); imagesc(zetatrmat); colorbar; axis square;
         drawnow;
+    elseif p.sim.makeLiveFig == 2
+        plot(cumsum(laminst(1,:))./(1:length(laminst(1,:))), '-o');
+        xlim([1 p.sim.tu/p.ts.tN]);
+        ylim([-0.5 0.5]);
+        drawnow;
     end
 end
 

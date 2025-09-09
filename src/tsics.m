@@ -1,58 +1,43 @@
 function [dpsimat, dpsihmat, domzmat, domzhmat, ...
                     dzetamat, dH, laminst, dHmag] = tsics(p)
+%TSICS  Compute random initial conditions for tangent space calcs.
+%
+%[dpsimat, dpsihmat, domzmat, domzhmat, ...
+%                   dzetamat, dH, laminst, dHmag] = tsics(p)
+
 nv = p.ts.nv;
 Nx = p.rmesh.Nx;
 Ny = p.rmesh.Ny;
-Kx = p.smesh.Kx;
-Ky = p.smesh.Ky;
 N = p.rmesh.N;
 nmax = p.sim.nmax;
 dHmag = zeros(nv,nmax); % magnitude of the perturbation vectors
-% same as fpv fd si
-rng(p.sim.seed,"twister");
-randrange = 0.05;
-for k = 1:nv
-    rng(p.sim.seed+k,"twister");
-    dpsimat(:,:,k) = -randrange + (randrange-(-randrange)) * rand(Nx,Ny);
-    dpsimat(:,:,k) = dpsimat(:,:,k)./norm(dpsimat(:,:,k));
-    rng(p.sim.seed+2+k,"twister"); % setting different IC for omz
-    domzmat(:,:,k) = -randrange + (randrange-(-randrange)) * rand(Nx,Ny);
-    domzmat(:,:,k) = domzmat(:,:,k)./norm(domzmat(:,:,k));
-    dzetamat(:,:,k) = zetaGSHspectral(p,domzmat(:,:,k));
-end
-rng(p.sim.seed,"twister");
-
-% original process
-% rng(seed + 2, "twister");
-% randrange = 0.05;
-% dpsimat = -randrange + (randrange + randrange) * rand(Nx,Ny,nv);
-% dzetamat = -randrange + (randrange + randrange) * rand(Nx,Ny,nv);
-% domzmat = (Kx.^2+Ky.^2) .* dzetamat;
-
-% dpsivec = latToVec(dpsimat);
-% domzvec = latToVec(domzmat);
-
+dH = zeros(2*N,nv,1); % columns of dH are perturbation vectors
+dpsimat = zeros(Nx,Ny,nv);
+domzmat = zeros(Nx,Ny,nv);
+dzetamat = zeros(Nx,Ny,nv);
 dpsihmat = zeros(size(dpsimat));
 domzhmat = zeros(size(domzmat));
-dH = zeros(2*N,nv,1); % columns of dH are perturbation vectors
-% dH = 0.001*orth(dH); % make them orthonormal and small
+
+% same as fpv fd si
+rng(p.sim.seed,"twister");
+randrange = 0.01;
+for k = 1:nv
+    rng(p.sim.seed+k,"twister");
+    dH(:,k,1) = -randrange + (randrange-(-randrange)) * rand(2*N,1,1);
+    dH(:,k,1) = dH(:,k,1)./norm(dH(:,k,1));
+    dpsimat(:,:,k) = reshape(dH(1:N,k,1),Nx,Ny)';
+    domzmat(:,:,k) = reshape(dH(N+1:2*N,k,1),Nx,Ny)';
+    dzetamat(:,:,k) = zetaGSHspectral(p,domzmat(:,:,k));
+    dHmag(k,1) = norm(dH(:,k,1));
+end
+
+rng(p.sim.seed,"twister"); % set rng back to seed
 
 for k = 1:nv
     dpsihmat(:,:,k) = fft2(dpsimat(:,:,k));
-    domzmat(:,:,k) = (Kx.^2+Ky.^2).*(dzetamat(:,:,k));
     domzhmat(:,:,k) = fft2(domzmat(:,:,k));
-    % dpsivec(:,k) = latToVec(dpsimat(:,:,k));
-    % domzvec(:,k) = latToVec(domzmat(:,:,k));
-    dH(:,k,1) = [reshape(dpsimat(:,:,k)',[],1); ...
-                 reshape(domzmat(:,:,k)',[],1)];
-    dH(:,k,1) = dH(:,k,1)./norm(dH(:,k,1));
-    % dHhat(:,k,1)= [reshape(dpsihmat(:,:,k)',[],1); ...
-    %              reshape(domzhmat(:,:,k)',[],1)];
-    dHmag(k,1) = norm(dH(:,k,1));
 end
-% dH(:,:,1) = [dpsivec; domzvec]; % initializing perturbation vectors
 
 laminst = zeros(nv,1); % lambda(k) instantaneous
-
 
 end
