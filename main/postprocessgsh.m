@@ -1,6 +1,6 @@
 
-addpath('../../../pdes/src/');
-addpath('../../../pdes/src/othercolor/');
+addpath('../src/');
+addpath('../src/othercolor/');
 
 %% Transient dynamics video
 
@@ -781,11 +781,60 @@ nvvec = (1:p.ts.nv)';
 myplot(nvvec,lamgs,'$k$','$\lambda_k$');
 
 
-%%
+%% fractal dimension
 dlamb = kydimension(lamgs,length(lamgs));
 
 %%
 dlamfit = kydimension(lamfit,length(lamfit));
+
+%% fractal dimension over all time
+laminstlength = length(laminst(1,:));
+calamspectra = cumsum(laminst,2)./(1:laminstlength);
+Dlam_t = zeros(1,length(calamspectra(1,:)));
+for i = 1:length(calamspectra(1,:))
+    Dlam_t(i) = kydimension(calamspectra(:,i), length(calamspectra(:,i)));
+end
+
+%% Fractal dimension fit
+time = linspace(1,p.sim.tu,floor(p.sim.tu/p.ts.tN));
+
+fprintf('D_lambda : %.4f\n\n',Dlam_t(end));
+[xData, yData] = prepareCurveData( time, Dlam_t );
+
+fiteqn = 'a+b/x';
+initExcludeXDataPoints = 300;
+
+% Set up fittype and options.
+ft = fittype( fiteqn, 'independent', 'x', 'dependent', 'y' );
+excludedPoints = xData < initExcludeXDataPoints;
+opts = fitoptions( 'Method', 'NonlinearLeastSquares' );
+opts.Display = 'Off';
+opts.StartPoint = [0.1 -1];
+opts.Exclude = excludedPoints;
+
+% Fit model to data.
+[fitresult, gof] = fit( xData, yData, ft, opts );
+fprintf('Fitresult:\n');
+disp(fitresult);
+    
+% Plot fit with data.
+figure;
+hold on;
+h = plot( fitresult,'b-', xData, yData,'k.', excludedPoints, 'r*');
+ylim([-max(abs(yData)) max(abs(yData))]);
+xlim([xData(1) xData(end)]);
+xaxis = yline(0);
+set(h,'LineWidth',1,'MarkerSize',6);
+fitname = join(['(' num2str(fitresult.a) ') + (' num2str(fitresult.b) ')/t']);
+excludeLegend = join(['Initial points excluded: ' num2str(initExcludeXDataPoints)]);
+legend( h, '$D_{\lambda}(t)$', excludeLegend, ...
+    fitname, 'Location', 'SouthEast', 'Interpreter', 'latex' );
+% Label axes
+set(gca,'TickLabelInterpreter','tex','FontSize',15,'LineWidth',1,'XMinorTick','on','YMinorTick','on');
+ylabel('$D_{\lambda}(t)$','FontSize',30,'Interpreter','latex','Rotation',90);
+% ylabel('$(\sum_{i=0}^t\lambda_{1,\,i})/t$','FontSize',30,'Interpreter','latex','Rotation',0);
+xlabel('$t$','FontSize',30,'Interpreter','latex');
+box on; axis square;
 
 %% Fit: 'lam1 cummulative average fit'.
 time = linspace(1,p.sim.tu,floor(p.sim.tu/p.ts.tN));

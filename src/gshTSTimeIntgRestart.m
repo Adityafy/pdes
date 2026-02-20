@@ -1,10 +1,14 @@
-function [psi,omz,zeta,dH,Rmat,dHmag,laminst,lamgs] = gshTSTimeIntg(p,dynICAddress)
+function [psi,omz,zeta,dH,Rmat,dHmag,laminst,lamgs] = ...
+gshTSTimeIntgRestart(p,TSICAddress)
 
-% dt = p.ts.dt;
+% update nmax
+p.sim.nmax = p.sim.tu/p.sim.dt;
+
+% unpack other variables from parameter struct
 Nx = p.rmesh.Nx;
 Ny = p.rmesh.Ny;
 N = p.rmesh.N;
-tu = p.sim.tu;
+
 nv = p.ts.nv;
 tN = p.ts.tN;
 nmax = p.sim.nmax;
@@ -14,25 +18,22 @@ if p.sim.runtype == 0
         [matdivpsi, matdivomz] = impMatGSH(p,p.sim.dt);
 end
 
-if p.Restart == 0
-    [psimat,psi,omzmat,omz,zetamat,zeta] = dynICafterTr(dynICAddress);
-    [dpsimat, dpsihmat, domzmat, domzhmat, ...
-        dzetamat, dHn, laminst, dHmag] = tsics(p);
-elseif p.Restart == 1
-    load(dynICAddress,'psi','omz','zeta','laminst','dH');
-    % end is the beginning
-    psimat = psi;
-    zetamat = zeta;
-    omzmat = omz;
-    psi(:,:,1) = psimat;
-    zeta(:,:,1) = zetamat;
-    omz(:,:,1) = omzmat;
+load(TSICAddress,'psi','omz','zeta','laminst','dH');
+% end is the beginning
+psimat = psi(:,:,1);
+zetamat = zeta(:,:,1);
+omzmat = omz(:,:,1);
+psi(:,:,1) = psi(:,:,1);
+zeta(:,:,1) = zeta(:,:,1);
+omz(:,:,1) = omz(:,:,1);
 
-    laminst = laminst(:,end);
-    [dpsimat, dpsihmat, domzmat, domzhmat, ...
-        dzetamat, dH, dHmag] = unpackdH(p,dH);
-end
 
+laminst = laminst(:,end);
+[dpsimat, dpsihmat, domzmat, domzhmat, ...
+                    dzetamat, dH, dHmag] = unpackdH(p,dH);
+% [dpsimat, dpsihmat, domzmat, domzhmat, ...
+                    % dzetamat, dHn, laminst, dHmag] = tsics(p);
+dHn = dH(:,:,end);
 etd = etdPreCalcs(p.L1,p.L2,p.sim.dt);
 
 if p.sim.savingtype == 1
@@ -159,7 +160,7 @@ for n = 1:nmax
             % u(:,:,round(n*interv/nmax)) = umat;
             % v(:,:,round(n*interv/nmax)) = vmat;
             % pertvecs(:,:,round(n*interv/nmax)) = dH;
-            dH(:,:,round(n*interv/nmax)) = dHn(:,1);
+            dH(:,:,round(n*interv/nmax)) = dHn;
             % dpsi1(:,:,round(n*interv/nmax)) = dpsi1mat;
             % domz1(:,:,round(n*interv/nmax)) = domz1mat;
         end

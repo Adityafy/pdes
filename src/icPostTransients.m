@@ -1,8 +1,9 @@
-%% Script for GSH 
-% attempt to combine FDSI and PSETD run through a single script
+function icPostTransients(epsilon,sig,csq,gm,Gamma,transientTime)
 
-clear all;
-close all;
+%% IC post Transients, gamma = 38
+
+% clear all;
+% close all;
 
 addpath('../src/');
 sfa = '../../pdesDataDump/'; % saved files address
@@ -10,31 +11,21 @@ sfa = '../../pdesDataDump/'; % saved files address
 %% Parameters
 
 %% Control Parameters
-con = initControlParams('csq',0.1,'gm',50);
-
+con = initControlParams('epsilon',epsilon,'sig',sig,'csq',csq,'gm',gm);
+tu = transientTime;
 %% SIMULATION PARAMETERS
-
-% domain
 sim.lam_0 = 2*pi; % critical roll wavelength (not a sim parameter but for now)
-sim.Gamma = 34; % aspect ratio
-sim.wlmult = sim.Gamma/2; % wavelength multiplier (determines Lx) (do not change)
-
-% time
+sim.Gamma = Gamma; % aspect ratio
 sim.dt = 0.1;
-sim.tu = 10; % time units
+sim.tu = tu; % time units
 sim.nmax = round(sim.tu/sim.dt);
-sim.interv = floor(sim.tu); %intervals for saving dynamics
-sim.tstart = 0;
-sim.tend = sim.tu;
-
-% random seed
 sim.seed = 1;
-
-% others
 sim.frgamma = pi/2; %filtering radius gamma
+sim.wlmult = sim.Gamma/2; % wavelength multiplier (determines Lx) (do not change)
 sim.dynICtype = 1; % initial condition type for starting transients simulation
 sim.runtype = 1; % 0 for finite difference + semi-Implicit
                 % 1 for pseudospectral
+sim.interv = floor(sim.tu); %intervals for saving dynamics
 
 %%% switches
 sim.progReportFactor = 10;
@@ -75,4 +66,5 @@ if sim.saveICforTS==1
         'omzICpostTr', 'zetaICpostTr','-v7.3');
 end
 
+end
 

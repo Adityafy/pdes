@@ -3,7 +3,10 @@
 clear all;
 close all;
 
+%%
 addpath('../src/');
+
+%%
 sfa = '../../pdesDataDump/'; % saved files address
 
 %% Load initial condtions from transients.
@@ -14,7 +17,7 @@ load(dynICAddress,'p'); % load p to change some fields for ts calcs
 %% Set up simulation parameters for tangent space calculations.
 % we change the fields in simulation struct (sim) of p struct
 dt_ts = 0.1;
-tu_ts = 400;
+tu_ts = 100;
 p.sim.dt = dt_ts;
 p.sim.tu = tu_ts;
 p.sim.nmax = round(p.sim.tu/p.sim.dt);
@@ -55,20 +58,23 @@ fprintf(join(['Running tangent space ' p.dyn_run_name ' ...\n']));
 
 %% Time Integration
 tic;
+% [psi,omz,zeta,dH,R,dHmag,laminst,lamgs] = gshTSTimeIntg(p,dynICAddress);
 [psi,omz,zeta,dH,R,dHmag,laminst,lamgs] = gshTSTimeIntg(p,dynICAddress);
 % [dHmag,laminst,lamgs] = gshTSTimeIntgBuffer(p,dynICAddress);
 toc;
 
 %% calculating cmatrix
-fprintf('\nCalcs for c matrix..\n');
-cmat = cmatrix(R,0,0);
-toc;
-clear R;
+% fprintf('\nCalcs for c matrix..\n');
+% cmat = cmatrix(R,0,0);
+% toc;
+% clear R;
 
 %%
 fprintf(join(['Running clv calcs ' p.dyn_run_name ' ...\n']));
 
-[wf,cle] = clvGSH(p,psi,omz,zeta,dH,cmat);
+% [wf,cle] = clvGSH(p,psi,omz,zeta,dH,cmat);
+
+[clv,cle,clvmag] = computeCLVs(p,dH,R,0,0);
 toc;
 
 %%

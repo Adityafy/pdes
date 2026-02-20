@@ -1,7 +1,7 @@
 #! /bin/bash
 #
 #SBATCH --job-name=tsrun_256vecs
-#SBATCH --account=compsci
+#SBATCH --account=accountname
 #SBATCH --time=128:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=32
